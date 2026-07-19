@@ -8,7 +8,7 @@ import styles from './page.module.css';
 export default function ClientsPage() {
   const { clients, invoices, addClient } = useAppData();
   const [isAdding, setIsAdding] = useState(false);
-  const [newClient, setNewClient] = useState({ name: '', email: '', address: '' });
+  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', address: '' });
   
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
@@ -18,7 +18,7 @@ export default function ClientsPage() {
     if (!newClient.name || !newClient.email) return;
     
     addClient(newClient);
-    setNewClient({ name: '', email: '', address: '' });
+    setNewClient({ name: '', email: '', phone: '', address: '' });
     setIsAdding(false);
   };
 
@@ -72,6 +72,16 @@ export default function ClientsPage() {
                   value={newClient.email} 
                   onChange={e => setNewClient({...newClient, email: e.target.value})} 
                   placeholder="billing@acme.corp"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Phone Number</label>
+                <input 
+                  type="text" 
+                  className={styles.input}
+                  value={newClient.phone || ''} 
+                  onChange={e => setNewClient({...newClient, phone: e.target.value})} 
+                  placeholder="+1 (555) 000-0000"
                 />
               </div>
               <div className={styles.formGroup}>

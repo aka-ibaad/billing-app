@@ -97,6 +97,7 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
               <p className={styles.clientName}>{client.name}</p>
               <p className={styles.clientAddress}>{client.address}</p>
               <p className={styles.clientEmail}>{client.email}</p>
+              {client.phone && <p className={styles.clientEmail}>{client.phone}</p>}
             </div>
           ) : (
             <p className={styles.placeholderText}>Select a client...</p>

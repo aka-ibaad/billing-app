@@ -31,10 +31,9 @@
 }
 
 .builderSplitScreen {
-  overflow: hidden;
   margin-bottom: var(--space-8);
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-8);
   align-items: start;
 }
@@ -52,6 +51,9 @@
 .builderRightPane {
   position: sticky;
   top: 24px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
 }
 
 .builderForm {
