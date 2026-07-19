@@ -21,6 +21,8 @@
   flex-direction: column;
   color: var(--color-pure-black);
   border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
 }
 
 .documentVertical {
@@ -34,12 +36,47 @@
   color: var(--color-pure-black);
   border-radius: var(--radius-sm);
   margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 120px;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.03);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
+}
+
+.documentVertical .watermark {
+  font-size: 60px;
+}
+
+.letterheadWrapper {
+  width: calc(100% + 96px);
+  margin: -64px -48px 32px -48px;
+  display: flex;
+  justify-content: center;
+}
+
+.letterhead {
+  width: 100%;
+  max-height: 150px;
+  object-fit: contain;
 }
 
 .logoWrapper {
   display: flex;
   justify-content: flex-start;
   margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
 }
 .documentVertical .logoWrapper {
   justify-content: center;
@@ -55,6 +92,8 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 48px;
+  position: relative;
+  z-index: 1;
 }
 .documentVertical .header {
   flex-direction: column;
@@ -100,119 +139,128 @@
 }
 .documentVertical .metaGrid {
   text-align: center;
-  grid-template-columns: 1fr;
-  gap: 4px;
+  justify-content: center;
 }
 
 .metaLabel {
   color: #666;
-  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  align-self: center;
-}
-.documentVertical .metaLabel {
-  display: none;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  font-size: 10px;
 }
 
 .clientSection {
   margin-bottom: 48px;
+  position: relative;
+  z-index: 1;
 }
 .documentVertical .clientSection {
-  margin-bottom: 24px;
   text-align: center;
+  border-top: 1px dashed #ccc;
+  border-bottom: 1px dashed #ccc;
+  padding: 16px 0;
+  margin-bottom: 24px;
 }
 
 .sectionTitle {
   font-size: 10px;
   font-weight: 600;
   color: #666;
-  text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 12px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 4px;
-}
-.documentVertical .sectionTitle {
-  border-bottom: none;
-  margin-bottom: 4px;
+  text-transform: uppercase;
 }
 
 .clientName {
-  font-size: 16px;
   font-weight: 600;
+  font-size: 16px;
   margin-bottom: 4px;
 }
-
 .clientAddress, .clientEmail {
-  font-size: 12px;
+  font-size: 14px;
   color: #444;
   line-height: 1.5;
 }
 
 .placeholderText {
-  font-size: 12px;
-  color: #999;
+  color: #aaa;
   font-style: italic;
+  font-size: 14px;
 }
 
 .itemsSection {
   flex-grow: 1;
-  margin-bottom: 32px;
+  margin-bottom: 48px;
+  position: relative;
+  z-index: 1;
 }
 
 .invoiceTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+}
+.documentVertical .invoiceTable {
+  font-size: 12px;
 }
 
 .invoiceTable th {
+  text-align: left;
+  padding: 12px 0;
+  border-bottom: 2px solid #111;
   font-size: 10px;
   font-weight: 600;
   color: #666;
-  text-transform: uppercase;
   letter-spacing: 0.1em;
-  border-bottom: 1px solid #111;
-  padding-bottom: 8px;
-  margin-bottom: 16px;
-  text-align: left;
+  text-transform: uppercase;
 }
 
 .invoiceTable td {
-  border-bottom: 1px solid #f5f5f5;
-  padding: 12px 0;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
   vertical-align: top;
-}
-
-.colQty, .colRate, .colAmount {
-  text-align: right !important;
-}
-
-.documentVertical .colRate,
-.documentVertical th.colRate {
-  display: none; /* Hide rate on receipts to save space */
 }
 .documentVertical .invoiceTable td {
   padding: 8px 0;
-  font-size: 11px;
+}
+
+.colDesc {
+  width: 50%;
+}
+.colQty {
+  width: 15%;
+  text-align: right !important;
+}
+.colRate {
+  width: 15%;
+  text-align: right !important;
+}
+.colAmount {
+  width: 20%;
+  text-align: right !important;
 }
 
 .footer {
   display: flex;
   justify-content: space-between;
-  margin-top: auto;
-  padding-top: 32px;
-  border-top: 1px solid #111;
+  align-items: flex-start;
+  gap: 48px;
+  position: relative;
+  z-index: 1;
 }
 .documentVertical .footer {
   flex-direction: column;
   gap: 24px;
-  border-top: 1px dashed #ccc;
 }
 
 .notesSection {
-  max-width: 60%;
+  flex: 1;
+}
+.documentVertical .notesSection {
+  width: 100%;
+  text-align: center;
+  border-top: 1px dashed #ccc;
+  padding-top: 16px;
 }
 
 .notesText {
@@ -221,85 +269,101 @@
   line-height: 1.6;
 }
 
+.footerText {
+  margin-top: 32px;
+  font-size: 10px;
+  color: #888;
+  line-height: 1.5;
+}
+
 .totalsSection {
-  width: 35%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  width: 300px;
+}
+.documentVertical .totalsSection {
+  width: 100%;
+  border-top: 1px dashed #ccc;
+  padding-top: 16px;
 }
 
 .totalRow {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  padding: 8px 0;
+  font-size: 14px;
   color: #444;
 }
 
 .grandTotal {
   display: flex;
   justify-content: space-between;
-  font-size: 20px;
-  font-weight: 600;
+  padding: 16px 0 0;
   margin-top: 8px;
-  padding-top: 8px;
   border-top: 2px solid #111;
+  font-weight: 600;
+  font-size: 20px;
+  color: #111;
 }
 
-/* Mobile Responsiveness for Invoice Preview */
-@media (max-width: 768px) {
+.signatureSection {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
+}
+.documentVertical .signatureSection {
+  align-items: center;
+  margin-top: 32px;
+}
+
+.signatureImage {
+  max-width: 150px;
+  max-height: 80px;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+.signatureLine {
+  width: 200px;
+  height: 1px;
+  background-color: #111;
+  margin-bottom: 8px;
+}
+
+.signatureText {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  width: 200px;
+}
+
+/* Print Overrides */
+@media print {
   .documentWrapper {
-    padding: var(--space-4);
+    padding: 0;
     min-height: auto;
-  }
-
-  .document {
-    padding: 32px 24px;
-    /* Allow it to be narrow on mobile rather than strictly A4 width if space doesn't permit */
-    min-width: 320px;
-    height: auto;
-    aspect-ratio: auto;
-  }
-
-  .header {
-    flex-direction: column;
-    gap: 32px;
-    margin-bottom: 32px;
-  }
-
-  .metaGrid {
-    text-align: left;
+    background-color: transparent;
+    display: block;
   }
   
-  .documentTitle {
-    text-align: left;
-    font-size: 24px;
+  .documentHorizontal {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    aspect-ratio: auto;
+    max-width: none;
+  }
+  
+  .documentVertical {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    max-width: 80mm; /* typical receipt width */
   }
 
-  .itemsHeader, .itemRow {
-    grid-template-columns: 2fr 1fr 1fr;
-    font-size: 10px;
-  }
-
-  .colDesc {
-    grid-column: span 3;
-    margin-bottom: 4px;
-    font-weight: bold;
-  }
-
-  .itemsHeader .colDesc {
-    display: none;
-  }
-
-  .footer {
-    flex-direction: column;
-    gap: 32px;
-  }
-
-  .notesSection {
-    max-width: 100%;
-  }
-
-  .totalsSection {
+  .letterheadWrapper {
+    margin: 0 0 32px 0;
     width: 100%;
   }
 }

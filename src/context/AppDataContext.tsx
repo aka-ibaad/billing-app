@@ -33,6 +33,7 @@ export type Invoice = {
   clientId: string;
   number: string;
   issueDate: string;
+  issueTime?: string;
   dueDate: string;
   items: LineItem[];
   status: 'Draft' | 'Pending' | 'Paid' | 'Overdue';
@@ -40,6 +41,9 @@ export type Invoice = {
   taxes?: Tax[];
   discount?: Discount;
   format?: 'horizontal' | 'vertical';
+  documentType?: 'invoice' | 'quotation';
+  paymentStatus?: 'advance_full' | 'advance_partial' | 'payable_after';
+  advanceAmountPaid?: number;
 };
 
 export type Settings = {
@@ -51,17 +55,43 @@ export type Settings = {
   headerText?: string;
   ntnNumber?: string;
   footerText?: string;
+  signatureUrl?: string;
+  watermarkText?: string;
+  letterheadUrl?: string;
+};
+
+export type Product = {
+  id: string;
+  name: string;
+  description: string;
+  defaultRate: number;
+};
+
+export type Expense = {
+  id: string;
+  payeeName: string;
+  description: string;
+  amount: number;
+  category: 'Materials' | 'Outsourced' | 'Other';
+  status: 'Paid' | 'Unpaid';
+  date: string;
 };
 
 type AppDataContextType = {
   clients: Client[];
   invoices: Invoice[];
   settings: Settings;
+  products: Product[];
+  expenses: Expense[];
   addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void;
   updateClient: (id: string, data: Partial<Client>) => void;
   addInvoice: (invoice: Omit<Invoice, 'id'>) => void;
   updateInvoice: (id: string, data: Partial<Invoice>) => void;
   updateSettings: (data: Partial<Settings>) => void;
+  addProduct: (product: Omit<Product, 'id'>) => void;
+  updateProduct: (id: string, data: Partial<Product>) => void;
+  addExpense: (expense: Omit<Expense, 'id'>) => void;
+  updateExpense: (id: string, data: Partial<Expense>) => void;
 };
 
 const defaultSettings: Settings = {
@@ -77,6 +107,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount
@@ -84,10 +116,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const storedClients = localStorage.getItem('billing_clients');
     const storedInvoices = localStorage.getItem('billing_invoices');
     const storedSettings = localStorage.getItem('billing_settings');
+    const storedProducts = localStorage.getItem('billing_products');
+    const storedExpenses = localStorage.getItem('billing_expenses');
 
     if (storedClients) setClients(JSON.parse(storedClients));
     if (storedInvoices) setInvoices(JSON.parse(storedInvoices));
     if (storedSettings) setSettings(JSON.parse(storedSettings));
+    if (storedProducts) setProducts(JSON.parse(storedProducts));
+    if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
     
     // Fallback mock data if empty
     if (!storedClients && !storedInvoices) {
@@ -115,8 +151,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('billing_clients', JSON.stringify(clients));
       localStorage.setItem('billing_invoices', JSON.stringify(invoices));
       localStorage.setItem('billing_settings', JSON.stringify(settings));
+      localStorage.setItem('billing_products', JSON.stringify(products));
+      localStorage.setItem('billing_expenses', JSON.stringify(expenses));
     }
-  }, [clients, invoices, settings, isLoaded]);
+  }, [clients, invoices, settings, products, expenses, isLoaded]);
 
   const addClient = (data: Omit<Client, 'id' | 'createdAt'>) => {
     setClients(prev => [...prev, { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() }]);
@@ -138,10 +176,30 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setSettings(prev => ({ ...prev, ...data }));
   };
 
+  const addProduct = (data: Omit<Product, 'id'>) => {
+    setProducts(prev => [...prev, { ...data, id: Date.now().toString() }]);
+  };
+
+  const updateProduct = (id: string, data: Partial<Product>) => {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+  };
+
+  const addExpense = (data: Omit<Expense, 'id'>) => {
+    setExpenses(prev => [...prev, { ...data, id: Date.now().toString() }]);
+  };
+
+  const updateExpense = (id: string, data: Partial<Expense>) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+  };
+
   if (!isLoaded) return null; // Prevent hydration mismatch
 
   return (
-    <AppDataContext.Provider value={{ clients, invoices, settings, addClient, updateClient, addInvoice, updateInvoice, updateSettings }}>
+    <AppDataContext.Provider value={{ 
+      clients, invoices, settings, products, expenses, 
+      addClient, updateClient, addInvoice, updateInvoice, updateSettings,
+      addProduct, updateProduct, addExpense, updateExpense
+    }}>
       {children}
     </AppDataContext.Provider>
   );

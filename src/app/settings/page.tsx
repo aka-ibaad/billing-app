@@ -15,11 +15,16 @@ export default function SettingsPage() {
     headerText: '',
     ntnNumber: '',
     footerText: '',
+    signatureUrl: '',
+    watermarkText: '',
+    letterheadUrl: '',
     defaultTaxes: [] as Tax[],
   });
 
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
+  const letterheadInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setFormData({
@@ -30,6 +35,9 @@ export default function SettingsPage() {
       headerText: settings.headerText || '',
       ntnNumber: settings.ntnNumber || '',
       footerText: settings.footerText || '',
+      signatureUrl: settings.signatureUrl || '',
+      watermarkText: settings.watermarkText || '',
+      letterheadUrl: settings.letterheadUrl || '',
       defaultTaxes: settings.defaultTaxes || [],
     });
   }, [settings]);
@@ -51,6 +59,21 @@ export default function SettingsPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, logoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'signatureUrl' | 'letterheadUrl') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) {
+        alert("File size exceeds 1MB limit");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, [field]: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
@@ -160,6 +183,67 @@ export default function SettingsPage() {
                   </button>
                 )}
               </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Digital Signature / Stamp</label>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Recommended size: 200x100 pixels. Transparent PNG preferred. Max 1MB.</p>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                {formData.signatureUrl && (
+                  <img src={formData.signatureUrl} alt="Signature" style={{ width: '120px', height: '60px', objectFit: 'contain', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '8px' }} />
+                )}
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  ref={signatureInputRef}
+                  onChange={e => handleImageUpload(e, 'signatureUrl')}
+                  style={{ display: 'none' }}
+                />
+                <button type="button" onClick={() => signatureInputRef.current?.click()} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+                  Upload Signature
+                </button>
+                {formData.signatureUrl && (
+                  <button type="button" onClick={() => setFormData({...formData, signatureUrl: ''})} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #ff4444', color: '#ff4444', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Official Letterhead</label>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Appears only on A4 Bill format. Max 1MB.</p>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                {formData.letterheadUrl && (
+                  <img src={formData.letterheadUrl} alt="Letterhead" style={{ width: '200px', height: '40px', objectFit: 'cover', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '4px' }} />
+                )}
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  ref={letterheadInputRef}
+                  onChange={e => handleImageUpload(e, 'letterheadUrl')}
+                  style={{ display: 'none' }}
+                />
+                <button type="button" onClick={() => letterheadInputRef.current?.click()} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+                  Upload Letterhead
+                </button>
+                {formData.letterheadUrl && (
+                  <button type="button" onClick={() => setFormData({...formData, letterheadUrl: ''})} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid #ff4444', color: '#ff4444', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Watermark Text</label>
+              <input 
+                type="text" 
+                className={styles.input}
+                value={formData.watermarkText}
+                onChange={e => setFormData({...formData, watermarkText: e.target.value})}
+                placeholder="e.g. CONFIDENTIAL or PAID"
+              />
             </div>
 
             <div className={styles.formGroup}>

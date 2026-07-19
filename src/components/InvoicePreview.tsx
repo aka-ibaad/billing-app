@@ -31,11 +31,28 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
   const tTax = totals?.totalTax ?? 0;
   const tFinal = totals?.total ?? (subtotal || 0);
 
+  const issueTime = invoice.issueTime || '';
+  const documentType = invoice.documentType || 'invoice';
+  const paymentStatus = invoice.paymentStatus || 'payable_after';
+  const advanceAmountPaid = invoice.advanceAmountPaid || 0;
+
   return (
     <div className={styles.documentWrapper}>
       <div className={`${styles.document} ${wrapperClass}`}>
         
-        {settings.logoUrl && (
+        {settings.watermarkText && (
+          <div className={styles.watermark}>
+            {settings.watermarkText}
+          </div>
+        )}
+
+        {format === 'horizontal' && settings.letterheadUrl && (
+          <div className={styles.letterheadWrapper}>
+            <img src={settings.letterheadUrl} alt="Letterhead" className={styles.letterhead} />
+          </div>
+        )}
+
+        {!settings.letterheadUrl && settings.logoUrl && (
           <div className={styles.logoWrapper}>
             <img src={settings.logoUrl} alt="Company Logo" className={styles.logo} />
           </div>
@@ -43,8 +60,11 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
         
         <header className={styles.header}>
           <div className={styles.businessInfo}>
-            {settings.headerText && <h1 className={styles.documentTitle}>{settings.headerText}</h1>}
-            {!settings.headerText && <h1 className={styles.documentTitle}>INVOICE</h1>}
+            {settings.headerText ? (
+              <h1 className={styles.documentTitle}>{settings.headerText}</h1>
+            ) : (
+              <h1 className={styles.documentTitle}>{documentType === 'quotation' ? 'QUOTATION' : 'INVOICE'}</h1>
+            )}
             
             <h2 className={styles.businessName}>{settings.businessName || 'Business Name'}</h2>
             <p className={styles.address}>{settings.businessAddress || '123 Business Rd, Tech City'}</p>
@@ -54,14 +74,18 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
           
           <div className={styles.metaInfo}>
             <div className={styles.metaGrid}>
-              <span className={styles.metaLabel}>Invoice No.</span>
+              <span className={styles.metaLabel}>{documentType === 'quotation' ? 'Quote No.' : 'Invoice No.'}</span>
               <span className="mono-text">{number}</span>
               
               <span className={styles.metaLabel}>Issue Date</span>
-              <span className="mono-text">{issueDate}</span>
+              <span className="mono-text">{issueDate} {issueTime && <span style={{fontSize: '10px', color: '#666'}}>{issueTime}</span>}</span>
               
-              <span className={styles.metaLabel}>Due Date</span>
-              <span className="mono-text">{dueDate}</span>
+              {documentType === 'invoice' && (
+                <>
+                  <span className={styles.metaLabel}>Due Date</span>
+                  <span className="mono-text">{dueDate}</span>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -141,8 +165,39 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
                 ₨ {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </span>
             </div>
+
+            {paymentStatus === 'advance_full' && (
+              <div className={styles.totalRow} style={{ color: 'var(--color-success)', marginTop: '8px' }}>
+                <span>Paid (Full Advance)</span>
+                <span className="mono-text">- ₨ {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              </div>
+            )}
+            
+            {paymentStatus === 'advance_partial' && (
+              <>
+                <div className={styles.totalRow} style={{ color: 'var(--color-success)', marginTop: '8px' }}>
+                  <span>Advance Paid</span>
+                  <span className="mono-text">- ₨ {advanceAmountPaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+                <div className={styles.grandTotal} style={{ fontSize: '18px', marginTop: '12px', borderTop: 'none' }}>
+                  <span>Remaining Balance</span>
+                  <span className="mono-text">
+                    ₨ {Math.max(0, tFinal - advanceAmountPaid).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </span>
+                </div>
+              </>
+            )}
+
           </div>
         </footer>
+
+        {settings.signatureUrl && (
+          <div className={styles.signatureSection}>
+            <img src={settings.signatureUrl} alt="Signature/Stamp" className={styles.signatureImage} />
+            <div className={styles.signatureLine}></div>
+            <p className={styles.signatureText}>Authorized Signature</p>
+          </div>
+        )}
       </div>
     </div>
   );

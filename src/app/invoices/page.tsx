@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 export default function InvoicesPage() {
-  const { invoices, clients, settings, addInvoice } = useAppData();
+  const { invoices, clients, settings, products, addInvoice } = useAppData();
   const [isCreating, setIsCreating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -21,6 +21,7 @@ export default function InvoicesPage() {
     clientId: '',
     number: `INV-2026-${String(invoices.length + 1).padStart(3, '0')}`,
     issueDate: new Date().toISOString().split('T')[0],
+    issueTime: new Date().toTimeString().slice(0, 5),
     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     items: [{ id: Date.now().toString(), description: '', quantity: 1, rate: 0 }],
     status: 'Draft' as const,
@@ -28,6 +29,9 @@ export default function InvoicesPage() {
     taxes: [] as Tax[],
     discount: { type: 'fixed' as 'fixed' | 'percentage', value: 0 },
     format: 'horizontal' as 'horizontal' | 'vertical',
+    documentType: 'invoice' as 'invoice' | 'quotation',
+    paymentStatus: 'payable_after' as 'advance_full' | 'advance_partial' | 'payable_after',
+    advanceAmountPaid: 0,
   });
 
   const handleAddItem = () => {
@@ -99,6 +103,7 @@ export default function InvoicesPage() {
       clientId: '',
       number: `INV-2026-${String(invoices.length + 2).padStart(3, '0')}`,
       issueDate: new Date().toISOString().split('T')[0],
+      issueTime: new Date().toTimeString().slice(0, 5),
       dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       items: [{ id: Date.now().toString(), description: '', quantity: 1, rate: 0 }],
       status: 'Draft',
@@ -106,6 +111,9 @@ export default function InvoicesPage() {
       taxes: [],
       discount: { type: 'fixed' as 'fixed' | 'percentage', value: 0 },
       format: 'horizontal' as 'horizontal' | 'vertical',
+      documentType: 'invoice' as 'invoice' | 'quotation',
+      paymentStatus: 'payable_after' as 'advance_full' | 'advance_partial' | 'payable_after',
+      advanceAmountPaid: 0,
     });
   };
 
@@ -179,14 +187,62 @@ export default function InvoicesPage() {
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Issue Date</label>
-                    <input 
-                      type="date" 
-                      className={`${styles.input} mono-text`}
-                      value={newInvoice.issueDate} 
-                      onChange={e => setNewInvoice({...newInvoice, issueDate: e.target.value})} 
-                    />
+                    <label>Document Type</label>
+                    <select 
+                      className={styles.input} 
+                      value={newInvoice.documentType}
+                      onChange={e => setNewInvoice({...newInvoice, documentType: e.target.value as 'invoice' | 'quotation'})}
+                    >
+                      <option value="invoice">Invoice (Standard)</option>
+                      <option value="quotation">Quotation / Estimate</option>
+                    </select>
                   </div>
+                  <div className={styles.formGroup}>
+                    <label>Issue Date & Time</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="date" 
+                        className={`${styles.input} mono-text`}
+                        style={{ flex: 2 }}
+                        value={newInvoice.issueDate} 
+                        onChange={e => setNewInvoice({...newInvoice, issueDate: e.target.value})} 
+                      />
+                      <input 
+                        type="time" 
+                        className={`${styles.input} mono-text`}
+                        style={{ flex: 1 }}
+                        value={newInvoice.issueTime} 
+                        onChange={e => setNewInvoice({...newInvoice, issueTime: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.builderHeader} style={{ marginTop: '16px' }}>
+                  <div className={styles.formGroup}>
+                    <label>Payment Terms</label>
+                    <select 
+                      className={styles.input} 
+                      value={newInvoice.paymentStatus}
+                      onChange={e => setNewInvoice({...newInvoice, paymentStatus: e.target.value as any})}
+                    >
+                      <option value="payable_after">Payable After Receiving</option>
+                      <option value="advance_full">Full Advance Paid</option>
+                      <option value="advance_partial">Partial Advance Paid</option>
+                    </select>
+                  </div>
+                  {newInvoice.paymentStatus === 'advance_partial' && (
+                    <div className={styles.formGroup}>
+                      <label>Advance Amount Paid</label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        className={`${styles.input} mono-text`}
+                        value={newInvoice.advanceAmountPaid} 
+                        onChange={e => setNewInvoice({...newInvoice, advanceAmountPaid: Number(e.target.value)})} 
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className={styles.itemsSection}>
@@ -201,10 +257,22 @@ export default function InvoicesPage() {
                     <div key={item.id} className={styles.itemRow}>
                       <input 
                         type="text" 
+                        list="productsList"
                         placeholder="Item description" 
                         className={styles.input}
                         value={item.description}
-                        onChange={e => handleItemChange(item.id, 'description', e.target.value)}
+                        onChange={e => {
+                          const val = e.target.value;
+                          const foundProduct = products.find(p => p.name === val);
+                          if (foundProduct) {
+                            setNewInvoice({
+                              ...newInvoice,
+                              items: newInvoice.items.map(i => i.id === item.id ? { ...i, description: val, rate: foundProduct.defaultRate } : i)
+                            });
+                          } else {
+                            handleItemChange(item.id, 'description', val);
+                          }
+                        }}
                         required
                       />
                       <input 
@@ -235,7 +303,11 @@ export default function InvoicesPage() {
                       </button>
                     </div>
                   ))}
-                  
+                  <datalist id="productsList">
+                    {products.map(p => (
+                      <option key={p.id} value={p.name} />
+                    ))}
+                  </datalist>
                   <button type="button" className={styles.addButton} onClick={handleAddItem}>
                     <Plus size={14} /> Add Line Item
                   </button>

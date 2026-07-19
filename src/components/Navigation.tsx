@@ -12,6 +12,8 @@ const navItems = [
   { id: 'dashboard', path: '/', label: 'Overview', icon: SquaresFour },
   { id: 'invoices', path: '/invoices', label: 'Invoices', icon: FileText },
   { id: 'clients', path: '/clients', label: 'Clients', icon: Users },
+  { id: 'products', path: '/products', label: 'Products', icon: SquaresFour },
+  { id: 'expenses', path: '/expenses', label: 'Expenses', icon: FileText },
   { id: 'records', path: '/records', label: 'Records', icon: FileText },
   { id: 'settings', path: '/settings', label: 'Settings', icon: Gear },
 ];
