@@ -4,8 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
-import { Wallet, WarningCircle, CheckCircle, ArrowUpRight, ArrowDownRight, X } from '@phosphor-icons/react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Wallet, WarningCircle, CheckCircle, ArrowUpRight, ArrowDownRight, X, Clock } from '@phosphor-icons/react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 type FilterType = '7D' | '30D' | '12M';
 
@@ -39,6 +39,48 @@ export default function Dashboard() {
     .reduce((sum, exp) => sum + exp.amount, 0);
 
   const netProfit = totalRevenue - totalExpenses;
+
+  const totalOutstanding = validInvoices
+    .filter(i => i.status !== 'Paid')
+    .reduce((sum, inv) => {
+      const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
+      let tTax = 0;
+      inv.taxes?.forEach(tax => tTax += subtotal * (tax.rate/100));
+      const total = subtotal + tTax - (inv.discount?.type === 'fixed' ? inv.discount.value : subtotal * ((inv.discount?.value||0)/100));
+      if (inv.paymentStatus === 'advance_partial' && inv.advanceAmountPaid) {
+        return sum + Math.max(0, total - inv.advanceAmountPaid);
+      }
+      return sum + total;
+    }, 0);
+
+  const overdue = validInvoices
+    .filter(i => i.status === 'Overdue')
+    .reduce((sum, inv) => {
+      const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
+      let tTax = 0;
+      inv.taxes?.forEach(tax => tTax += subtotal * (tax.rate/100));
+      const total = subtotal + tTax - (inv.discount?.type === 'fixed' ? inv.discount.value : subtotal * ((inv.discount?.value||0)/100));
+      if (inv.paymentStatus === 'advance_partial' && inv.advanceAmountPaid) {
+        return sum + Math.max(0, total - inv.advanceAmountPaid);
+      }
+      return sum + total;
+    }, 0);
+
+  const statusCounts = {
+    paid: validInvoices.filter(i => i.status === 'Paid').length,
+    pending: validInvoices.filter(i => i.status === 'Pending').length,
+    overdue: validInvoices.filter(i => i.status === 'Overdue').length,
+    draft: validInvoices.filter(i => i.status === 'Draft').length,
+  };
+
+  const pieData = [
+    { name: 'Paid', value: statusCounts.paid, color: '#117a11' },
+    { name: 'Pending', value: statusCounts.pending, color: '#f5a623' },
+    { name: 'Overdue', value: statusCounts.overdue, color: '#d0021b' },
+    { name: 'Draft', value: statusCounts.draft, color: '#888888' },
+  ].filter(d => d.value > 0);
+
+  const recentInvoices = [...validInvoices].reverse().slice(0, 5);
 
   // --- Chart Data Processing ---
   const chartData = useMemo(() => {
@@ -179,6 +221,38 @@ export default function Dashboard() {
           <div className={styles.metricValue}>₨ {netProfit.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
           <div className={styles.metricSub}>Revenue minus Expenses</div>
         </motion.div>
+
+        <motion.div 
+          className={styles.metricCard}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <div className={styles.metricHeader}>
+            <span className={styles.metricLabel}>Total Outstanding</span>
+            <div className={styles.iconWrapper} style={{ backgroundColor: '#fff3e0', color: '#ff9800' }}>
+              <Clock size={20} />
+            </div>
+          </div>
+          <div className={styles.metricValue}>₨ {totalOutstanding.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+          <div className={styles.metricSub}>Pending payments</div>
+        </motion.div>
+
+        <motion.div 
+          className={styles.metricCard}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <div className={styles.metricHeader}>
+            <span className={styles.metricLabel}>Overdue</span>
+            <div className={styles.iconWrapper} style={{ backgroundColor: '#ffebee', color: '#f44336' }}>
+              <WarningCircle size={20} />
+            </div>
+          </div>
+          <div className={styles.metricValue}>₨ {overdue.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+          <div className={styles.metricSub}>Past due date</div>
+        </motion.div>
       </div>
 
       {/* Main Chart Section */}
@@ -199,7 +273,7 @@ export default function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
-              <Tooltip 
+              <RechartsTooltip 
                 cursor={{fill: '#f5f5f5'}} 
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                 formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`}
@@ -211,6 +285,79 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       </motion.div>
+
+      {/* Secondary Charts & Lists Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginTop: '24px' }}>
+        <motion.div 
+          className={styles.chartSection}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
+        >
+          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Status Breakdown</h2>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip 
+                  formatter={(value: any) => `${value} Invoices`}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                />
+                <Legend verticalAlign="bottom" height={36} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          className={styles.chartSection}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)', overflowX: 'auto' }}
+        >
+          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Recent Invoices</h2>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #eee' }}>
+                <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Invoice #</th>
+                <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentInvoices.map(inv => (
+                <tr key={inv.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                  <td style={{ padding: '16px 0' }} className="mono-text">{inv.number}</td>
+                  <td style={{ padding: '16px 0' }}>
+                    <span style={{ 
+                      padding: '4px 8px', 
+                      borderRadius: '4px', 
+                      fontSize: '12px',
+                      backgroundColor: inv.status === 'Paid' ? '#e6f6e6' : inv.status === 'Overdue' ? '#fee' : '#fff3e0',
+                      color: inv.status === 'Paid' ? '#117a11' : inv.status === 'Overdue' ? '#c00' : '#ff9800'
+                    }}>
+                      {inv.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </motion.div>
+      </div>
 
       {/* Breakdown Modal */}
       <AnimatePresence>
