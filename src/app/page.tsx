@@ -5,7 +5,7 @@ import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 import { Wallet, WarningCircle, CheckCircle, ArrowUpRight, ArrowDownRight, X, Clock } from '@phosphor-icons/react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ComposedChart, Area } from 'recharts';
 
 type FilterType = '7D' | '30D' | '12M';
 
@@ -255,39 +255,34 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Main Chart Section */}
-      <motion.div 
-        className={styles.chartSection}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        style={{ marginTop: '32px', background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
-      >
-        <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Revenue vs Expenses</h2>
-        <div style={{ width: '100%', height: '400px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
-              <RechartsTooltip 
-                cursor={{fill: '#f5f5f5'}} 
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px' }} />
-              <Bar dataKey="Revenue" fill="#117a11" radius={[4, 4, 0, 0]} maxBarSize={50} />
-              <Bar dataKey="Expenses" fill="#c00" radius={[4, 4, 0, 0]} maxBarSize={50} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
+      {/* Dynamic Charts Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginTop: '32px' }}>
+        
+        {/* Animated Bar Chart */}
+        <motion.div 
+          className={styles.chartSection}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
+        >
+          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Revenue vs Expenses (Bar)</h2>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
+                <RechartsTooltip cursor={{fill: '#f5f5f5'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`} />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar dataKey="Revenue" fill="#117a11" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="Expenses" fill="#c00" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
 
-      {/* Secondary Charts & Lists Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginTop: '24px' }}>
+        {/* Animated Line Chart */}
         <motion.div 
           className={styles.chartSection}
           initial={{ opacity: 0, y: 20 }}
@@ -295,39 +290,75 @@ export default function Dashboard() {
           transition={{ duration: 0.5, delay: 0.5 }}
           style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
         >
-          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Status Breakdown</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Revenue Trend (Line)</h2>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
+                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`} />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <Line type="monotone" dataKey="Revenue" stroke="#117a11" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Status Breakdown (Pie Chart) */}
+        <motion.div 
+          className={styles.chartSection}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
+        >
+          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Status Breakdown (Pie)</h2>
           <div style={{ width: '100%', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <RechartsTooltip 
-                  formatter={(value: any) => `${value} Invoices`}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                />
+                <RechartsTooltip formatter={(value: any) => `${value} Invoices`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                 <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
+        {/* Animated Composed Chart */}
         <motion.div 
           className={styles.chartSection}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)', overflowX: 'auto' }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
+        >
+          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Overview (Line + Bar)</h2>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
+                <RechartsTooltip cursor={{fill: '#f5f5f5'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`} />
+                <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar dataKey="Expenses" barSize={30} fill="#c00" radius={[4, 4, 0, 0]} />
+                <Line type="monotone" dataKey="Revenue" stroke="#117a11" strokeWidth={3} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+        {/* Recent Invoices List */}
+        <motion.div 
+          className={styles.chartSection}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+          style={{ gridColumn: '1 / -1', background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)', overflowX: 'auto' }}
         >
           <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Recent Invoices</h2>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
