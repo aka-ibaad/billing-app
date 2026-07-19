@@ -73,7 +73,7 @@
 
 .logoWrapper {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   margin-bottom: 32px;
   position: relative;
   z-index: 1;
@@ -95,26 +95,11 @@
   position: relative;
   z-index: 1;
 }
-.documentHorizontal .header {
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
 .documentVertical .header {
   flex-direction: column;
   align-items: center;
-  margin-bottom: 24px;
-}
-
-.businessInfo {
-  max-width: 100%;
-}
-.documentHorizontal .businessInfo {
-  margin-bottom: 24px;
-}
-.documentVertical .businessInfo {
   text-align: center;
-  margin-bottom: 24px;
+  gap: 24px;
 }
 
 .businessName {
@@ -135,7 +120,7 @@
   font-weight: 300;
   letter-spacing: 0.2em;
   margin-bottom: 24px;
-  text-align: center;
+  text-align: right;
   color: #111;
   text-transform: uppercase;
 }
@@ -152,9 +137,8 @@
   text-align: right;
   font-size: 12px;
 }
-.documentHorizontal .metaGrid,
 .documentVertical .metaGrid {
-  text-align: left;
+  text-align: center;
   justify-content: center;
 }
 

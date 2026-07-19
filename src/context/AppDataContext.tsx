@@ -55,6 +55,8 @@ export type Settings = {
   logoUrl?: string;
   headerText?: string;
   ntnNumber?: string;
+  phone?: string;
+  website?: string;
   footerText?: string;
   signatureUrl?: string;
   watermarkText?: string;
