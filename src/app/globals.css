@@ -40,6 +40,15 @@
   --light-chart-purple: #9333ea;
   --light-noise-opacity: 0.01;
 
+  /* --- LIGHT DROPDOWN --- */
+  --light-dropdown-bg: rgba(255, 255, 255, 0.95);
+  --light-dropdown-text: #111827;
+  --light-dropdown-secondary: #6b7280;
+  --light-dropdown-hover: #f3f4f6;
+  --light-dropdown-selected: #0055ff;
+  --light-dropdown-selected-text: #ffffff;
+  --light-dropdown-border: rgba(0, 0, 0, 0.08);
+
   /* --- DARK THEME (Ethereal Glass Premium SaaS) --- */
   --dark-pure-black: #000000;
   --dark-crisp-white: #ffffff;
@@ -73,6 +82,15 @@
   --dark-chart-purple: #8b5cf6;  /* Info */
   
   --dark-noise-opacity: 0.04;
+
+  /* --- DARK DROPDOWN --- */
+  --dark-dropdown-bg: rgba(17, 24, 39, 0.85); /* #111827 */
+  --dark-dropdown-text: #ffffff;
+  --dark-dropdown-secondary: #d1d5db;
+  --dark-dropdown-hover: #1f2937;
+  --dark-dropdown-selected: #3b82f6;
+  --dark-dropdown-selected-text: #ffffff;
+  --dark-dropdown-border: rgba(255, 255, 255, 0.08);
 
 
   /* =========================================
@@ -111,6 +129,15 @@
   --color-chart-amber: var(--light-chart-amber);
   --color-chart-purple: var(--light-chart-purple);
   --noise-opacity: var(--light-noise-opacity);
+
+  /* Dropdown Aliases */
+  --color-dropdown-bg: var(--light-dropdown-bg);
+  --color-dropdown-text: var(--light-dropdown-text);
+  --color-dropdown-secondary: var(--light-dropdown-secondary);
+  --color-dropdown-hover: var(--light-dropdown-hover);
+  --color-dropdown-selected: var(--light-dropdown-selected);
+  --color-dropdown-selected-text: var(--light-dropdown-selected-text);
+  --color-dropdown-border: var(--light-dropdown-border);
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', sans-serif;
@@ -192,6 +219,15 @@
   --color-chart-amber: var(--dark-chart-amber);
   --color-chart-purple: var(--dark-chart-purple);
   --noise-opacity: var(--dark-noise-opacity);
+
+  /* Dropdown Aliases */
+  --color-dropdown-bg: var(--dark-dropdown-bg);
+  --color-dropdown-text: var(--dark-dropdown-text);
+  --color-dropdown-secondary: var(--dark-dropdown-secondary);
+  --color-dropdown-hover: var(--dark-dropdown-hover);
+  --color-dropdown-selected: var(--dark-dropdown-selected);
+  --color-dropdown-selected-text: var(--dark-dropdown-selected-text);
+  --color-dropdown-border: var(--dark-dropdown-border);
 }
 
 *, *::before, *::after {
@@ -209,6 +245,28 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   min-height: 100vh;
+}
+
+/* Native select and options styling */
+select, input[type="date"], input[type="time"], input[type="datetime-local"] {
+  background-color: var(--color-bg-secondary); /* Usually matches input bg, dropdown itself uses dropdown-bg */
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+select:focus, input[type="date"]:focus, input[type="time"]:focus {
+  border-color: var(--color-accent);
+}
+
+option {
+  background-color: var(--color-dropdown-bg);
+  color: var(--color-dropdown-text);
+  padding: 8px;
+}
+
+option:checked, option:hover {
+  background-color: var(--color-dropdown-selected) !important;
+  color: var(--color-dropdown-selected-text) !important;
 }
 
 /* Base Body Background with vignette */

@@ -51,6 +51,28 @@
   z-index: -1;
 }
 
+/* --- Quick Stats Bar --- */
+.quickStatsBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-sidebar);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  backdrop-filter: blur(10px);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.quickStatsBar strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
 /* --- Summary Cards --- */
 .summaryGrid {
   display: grid;
@@ -207,7 +229,31 @@
   color: var(--color-text-primary);
 }
 
-/* --- Charts Row --- */
+.widgetsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.widgetsGridSplit {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.aiInsightsWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.recentPaymentsWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Main Charts --- */
 .chartsRow {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -415,6 +461,12 @@
   .summaryGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .widgetsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .widgetsGridSplit {
+    grid-template-columns: 1fr;
+  }
   .chartsRow, .bottomRow {
     grid-template-columns: 1fr;
   }
@@ -427,10 +479,97 @@
   .summaryGrid {
     grid-template-columns: 1fr;
   }
+  .widgetsGrid {
+    grid-template-columns: 1fr;
+  }
   .actionsGrid {
     grid-template-columns: repeat(2, 1fr);
   }
   .dashboard {
     padding: 0 var(--space-4) var(--space-8) var(--space-4);
   }
+}
+
+/* --- Deliveries Widget --- */
+.deliveriesWidget {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.deliveriesHeader {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.deliveriesTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.deliveriesTitle h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.deliveriesList {
+  display: flex;
+  flex-direction: column;
+}
+
+.deliveryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background 0.2s ease;
+}
+
+.deliveryItem:last-child {
+  border-bottom: none;
+}
+
+.deliveryItem:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.deliveryInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.deliveryClient {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.deliveryMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.deliverBtn {
+  background: var(--color-chart-emerald);
+  color: white;
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.deliverBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }

@@ -128,6 +128,13 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
                   <span className="mono-text">{dueDate}</span>
                 </>
               )}
+              
+              {invoice.expectedReadyDate && (
+                <>
+                  <span className={styles.metaLabel}>Ready By</span>
+                  <span className="mono-text">{invoice.expectedReadyDate} {invoice.expectedReadyTime && <span style={{fontSize: '10px', color: '#666'}}>{invoice.expectedReadyTime}</span>}</span>
+                </>
+              )}
             </div>
           </div>
         </header>

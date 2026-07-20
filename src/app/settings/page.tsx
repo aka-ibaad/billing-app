@@ -7,7 +7,7 @@ import styles from './page.module.css';
 import { Sun, Moon, Monitor } from '@phosphor-icons/react';
 
 export default function SettingsPage() {
-  const { settings, updateSettings } = useAppData();
+  const { settings, updateSettings, seedMockData } = useAppData();
   const { theme, setTheme } = useTheme();
   
   const [formData, setFormData] = useState({
@@ -486,6 +486,24 @@ export default function SettingsPage() {
             <button type="button" onClick={addTax} className={styles.secondaryButton} style={{ alignSelf: 'flex-start' }}>
               + Add Tax Rule
             </button>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Developer & Testing</h2>
+              <p className={styles.sectionDesc}>Tools for populating the app with demo content</p>
+            </div>
+            
+            <div className={styles.formGroup}>
+              <button type="button" className={styles.secondaryButton} onClick={() => {
+                if (window.confirm('This will replace current data with mock data. Continue?')) {
+                  seedMockData();
+                  alert('Demo data seeded successfully! Go to the Dashboard to see it.');
+                }
+              }}>
+                Seed Demo Data
+              </button>
+            </div>
           </section>
 
           <div className={styles.formActions}>

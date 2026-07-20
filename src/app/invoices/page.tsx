@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 export default function InvoicesPage() {
-  const { invoices, clients, settings, products, addInvoice } = useAppData();
+  const { invoices, clients, settings, products, addInvoice, updateOrderStatus } = useAppData();
   const [isCreating, setIsCreating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -32,6 +32,9 @@ export default function InvoicesPage() {
     documentType: 'invoice' as 'invoice' | 'quotation',
     paymentStatus: 'payable_after' as 'advance_full' | 'advance_partial' | 'payable_after',
     advanceAmountPaid: 0,
+    expectedReadyDate: '',
+    expectedReadyTime: '',
+    orderStatus: 'Pending' as const,
   });
 
   const handleAddItem = () => {
@@ -114,6 +117,9 @@ export default function InvoicesPage() {
       documentType: 'invoice' as 'invoice' | 'quotation',
       paymentStatus: 'payable_after' as 'advance_full' | 'advance_partial' | 'payable_after',
       advanceAmountPaid: 0,
+      expectedReadyDate: '',
+      expectedReadyTime: '',
+      orderStatus: 'Pending',
     });
   };
 
@@ -244,6 +250,25 @@ export default function InvoicesPage() {
                       />
                     </div>
                   )}
+                  <div className={styles.formGroup}>
+                    <label>Expected Ready Date & Time</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="date" 
+                        className={`${styles.input} mono-text`}
+                        style={{ flex: 2 }}
+                        value={newInvoice.expectedReadyDate || ''} 
+                        onChange={e => setNewInvoice({...newInvoice, expectedReadyDate: e.target.value})} 
+                      />
+                      <input 
+                        type="time" 
+                        className={`${styles.input} mono-text`}
+                        style={{ flex: 1 }}
+                        value={newInvoice.expectedReadyTime || ''} 
+                        onChange={e => setNewInvoice({...newInvoice, expectedReadyTime: e.target.value})} 
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className={styles.itemsSection}>
@@ -481,7 +506,8 @@ export default function InvoicesPage() {
                   <th>Invoice Number</th>
                   <th>Client</th>
                   <th>Issue Date</th>
-                  <th>Status</th>
+                  <th>Payment Status</th>
+                  <th>Order Status</th>
                   <th className={styles.textRight}>Amount</th>
                 </tr>
               </thead>
@@ -521,6 +547,28 @@ export default function InvoicesPage() {
                     }`}>
                       {inv.status}
                     </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className={`${styles.statusBadge} ${
+                        inv.orderStatus === 'Delivered' ? styles.statusPaid : 
+                        inv.orderStatus === 'Cancelled' ? styles.statusOverdue : 
+                        styles.statusPending
+                      }`}>
+                        {inv.orderStatus || 'Pending'}
+                      </span>
+                      {inv.orderStatus !== 'Delivered' && inv.orderStatus !== 'Cancelled' && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); updateOrderStatus(inv.id, 'Delivered'); }}
+                          style={{
+                            background: 'none', border: '1px solid var(--color-border)', borderRadius: '4px',
+                            padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: 'var(--color-text-secondary)'
+                          }}
+                        >
+                          Mark Delivered
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className={styles.textRight}>₨ {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 </tr>

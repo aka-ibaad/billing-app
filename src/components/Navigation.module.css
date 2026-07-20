@@ -161,29 +161,17 @@
   gap: var(--space-3);
 }
 
-.subscriptionCard {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
 .profileSection {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   background: transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background 0.2s var(--ease-custom);
+  border-radius: var(--radius-lg);
   text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+  margin-top: auto;
 }
 
 .profileSection:hover {
@@ -191,6 +179,7 @@
 }
 
 .profileAvatar {
+  position: relative;
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
@@ -202,7 +191,24 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-primary);
-  overflow: hidden;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+}
+
+.onlineIndicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-chart-emerald);
+  border: 2px solid var(--color-bg-sidebar);
+  border-radius: 5px;
 }
 
 .profileInfo {

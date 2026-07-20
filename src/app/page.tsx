@@ -5,9 +5,15 @@ import Link from 'next/link';
 import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
+import AIInsightsWidget from '@/components/dashboard/AIInsightsWidget';
+import HealthScoreWidget from '@/components/dashboard/HealthScoreWidget';
+import UpcomingDueCalendar from '@/components/dashboard/UpcomingDueCalendar';
+import RevenueGoalWidget from '@/components/dashboard/RevenueGoalWidget';
+import RecentPaymentsWidget from '@/components/dashboard/RecentPaymentsWidget';
 import { 
   Wallet, WarningCircle, CheckCircle, Clock, TrendUp, TrendDown,
-  Plus, Users, ChartLineUp, Receipt, FileText, ArrowRight
+  Plus, Users, ChartLineUp, Receipt, FileText, ArrowRight,
+  ArrowUpRight, ArrowDownRight, CalendarBlank, Sparkle, Truck
 } from '@phosphor-icons/react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -17,7 +23,7 @@ import {
 type FilterType = '7D' | '30D' | '12M';
 
 export default function Dashboard() {
-  const { invoices, expenses, clients } = useAppData();
+  const { invoices, expenses, clients, products, updateOrderStatus } = useAppData();
   const [filter, setFilter] = useState<FilterType>('30D');
 
   const validInvoices = useMemo(() => invoices.filter(i => i.documentType !== 'quotation'), [invoices]);
@@ -53,6 +59,8 @@ export default function Dashboard() {
     let curExp = 0, prevExp = 0;
     let curOut = 0, prevOut = 0;
     let curOver = 0, prevOver = 0;
+    let curPaidCount = 0, prevPaidCount = 0;
+    let curPendingCount = 0, prevPendingCount = 0;
 
     const numBuckets = filter === '12M' ? 12 : filter === '30D' ? 15 : 7;
     const bucketSize = (daysInFilter * 24 * 60 * 60 * 1000) / numBuckets;
@@ -61,7 +69,9 @@ export default function Dashboard() {
       revenue: Array(numBuckets).fill(0),
       expenses: Array(numBuckets).fill(0),
       profit: Array(numBuckets).fill(0),
-      outstanding: Array(numBuckets).fill(0)
+      outstanding: Array(numBuckets).fill(0),
+      paidCount: Array(numBuckets).fill(0),
+      pendingCount: Array(numBuckets).fill(0),
     };
 
     validInvoices.forEach(inv => {
@@ -75,18 +85,25 @@ export default function Dashboard() {
       
       if (isCurrent) {
         curRev += paid;
-        if (inv.status !== 'Paid') curOut += outstanding;
+        if (inv.status !== 'Paid') { curOut += outstanding; curPendingCount++; }
+        if (inv.status === 'Paid') curPaidCount++;
         if (inv.status === 'Overdue') curOver += outstanding;
         
         const bucketIndex = Math.min(numBuckets - 1, Math.floor((d.getTime() - currentPeriodStart.getTime()) / bucketSize));
         if (bucketIndex >= 0) {
           sparklines.revenue[bucketIndex] += paid;
           sparklines.profit[bucketIndex] += paid;
-          if (inv.status !== 'Paid') sparklines.outstanding[bucketIndex] += outstanding;
+          if (inv.status !== 'Paid') {
+            sparklines.outstanding[bucketIndex] += outstanding;
+            sparklines.pendingCount[bucketIndex]++;
+          } else {
+            sparklines.paidCount[bucketIndex]++;
+          }
         }
       } else if (isPrev) {
         prevRev += paid;
-        if (inv.status !== 'Paid') prevOut += outstanding;
+        if (inv.status !== 'Paid') { prevOut += outstanding; prevPendingCount++; }
+        if (inv.status === 'Paid') prevPaidCount++;
         if (inv.status === 'Overdue') prevOver += outstanding;
       }
     });
@@ -123,9 +140,13 @@ export default function Dashboard() {
       revenue: { val: curRev, trend: calcTrend(curRev, prevRev), sparkline: sparklines.revenue.map((val, i) => ({ i, val })) },
       profit: { val: curRev - curExp, trend: calcTrend(curRev - curExp, prevRev - prevExp), sparkline: sparklines.profit.map((val, i) => ({ i, val })) },
       expenses: { val: curExp, trend: calcTrend(curExp, prevExp, true), sparkline: sparklines.expenses.map((val, i) => ({ i, val })) },
-      outstanding: { val: curOut, trend: calcTrend(curOut, prevOut, true), sparkline: sparklines.outstanding.map((val, i) => ({ i, val })) }
+      outstanding: { val: curOut, trend: calcTrend(curOut, prevOut, true), sparkline: sparklines.outstanding.map((val, i) => ({ i, val })) },
+      paidInvoices: { val: curPaidCount, trend: calcTrend(curPaidCount, prevPaidCount), sparkline: sparklines.paidCount.map((val, i) => ({ i, val })) },
+      pendingInvoices: { val: curPendingCount, trend: calcTrend(curPendingCount, prevPendingCount, true), sparkline: sparklines.pendingCount.map((val, i) => ({ i, val })) },
+      totalClients: { val: clients.length, trend: { val: 0, text: 'Total', type: 'neutral' }, sparkline: Array(numBuckets).fill(0).map((_, i) => ({ i, val: clients.length })) },
+      totalProducts: { val: products.length, trend: { val: 0, text: 'Total', type: 'neutral' }, sparkline: Array(numBuckets).fill(0).map((_, i) => ({ i, val: products.length })) }
     };
-  }, [validInvoices, expenses, filter]);
+  }, [validInvoices, expenses, clients, products, filter]);
 
   const mainChartData = useMemo(() => {
     const data: { label: string; Revenue: number; Expenses: number; dateStr?: string; weekOffset?: number; key?: string }[] = [];
@@ -197,6 +218,18 @@ export default function Dashboard() {
 
   const recentInvoices = [...validInvoices].reverse().slice(0, 5);
 
+  const dueDeliveries = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return validInvoices.filter(inv => {
+      if (!inv.expectedReadyDate) return false;
+      if (inv.orderStatus === 'Delivered' || inv.orderStatus === 'Cancelled') return false;
+      return inv.expectedReadyDate <= todayStr;
+    }).map(inv => ({
+      ...inv,
+      client: clients.find(c => c.id === inv.clientId)
+    })).sort((a, b) => new Date(a.expectedReadyDate!).getTime() - new Date(b.expectedReadyDate!).getTime());
+  }, [validInvoices, clients]);
+
   const activities = useMemo(() => {
     const list: any[] = [];
     validInvoices.slice(0, 3).forEach(inv => {
@@ -239,7 +272,9 @@ export default function Dashboard() {
       </div>
       <div>
         <div className={styles.metricTitle}>{title}</div>
-        <div className={styles.metricValue}>₨ {value.toLocaleString(undefined, {minimumFractionDigits: 0})}</div>
+        <div className={styles.metricValue}>
+          {title.includes('Total') || title.includes('Invoices') ? value.toLocaleString() : `₨ ${value.toLocaleString(undefined, {minimumFractionDigits: 0})}`}
+        </div>
         <div className={styles.metricFooter}>
           <div className={`${styles.trendBadge} ${trend.type === 'positive' ? styles.positive : trend.type === 'negative' ? styles.negative : styles.neutral}`}>
             {trend.type === 'positive' && <TrendUp size={12} />}
@@ -271,11 +306,76 @@ export default function Dashboard() {
         </div>
       </div>
 
+        <AnimatePresence>
+          {dueDeliveries.length > 0 && (
+            <motion.div 
+              className={styles.deliveriesWidget}
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            >
+              <div className={styles.deliveriesHeader}>
+                <div className={styles.deliveriesTitle}>
+                  <Truck size={24} weight="duotone" color="var(--color-chart-expense)" />
+                  <h3>Action Required: Today you need to deliver {dueDeliveries.length} order{dueDeliveries.length > 1 ? 's' : ''}.</h3>
+                </div>
+              </div>
+              <div className={styles.deliveriesList}>
+                {dueDeliveries.map(delivery => (
+                  <div key={delivery.id} className={styles.deliveryItem}>
+                    <div className={styles.deliveryInfo}>
+                      <span className={styles.deliveryClient}>{delivery.client?.name || 'Unknown'}</span>
+                      <span className={styles.deliveryMeta}>
+                        {delivery.number} • Due: {delivery.expectedReadyDate} {delivery.expectedReadyTime && `at ${delivery.expectedReadyTime}`} • {delivery.client?.phone || delivery.client?.email || 'No contact info'}
+                      </span>
+                    </div>
+                    <button 
+                      className={styles.deliverBtn} 
+                      onClick={() => updateOrderStatus(delivery.id, 'Delivered')}
+                    >
+                      Mark as Delivered
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       <div className={styles.summaryGrid}>
-        <MiniChartCard title="Revenue" value={kpiData.revenue.val} trend={kpiData.revenue.trend} sparkline={kpiData.revenue.sparkline} color="var(--color-chart-blue)" icon={Wallet} delay={0.1} />
-        <MiniChartCard title="Profit" value={kpiData.profit.val} trend={kpiData.profit.trend} sparkline={kpiData.profit.sparkline} color="var(--color-chart-emerald)" icon={TrendUp} delay={0.2} />
-        <MiniChartCard title="Expenses" value={kpiData.expenses.val} trend={kpiData.expenses.trend} sparkline={kpiData.expenses.sparkline} color="var(--color-chart-expense)" icon={TrendDown} delay={0.3} />
-        <MiniChartCard title="Pending" value={kpiData.outstanding.val} trend={kpiData.outstanding.trend} sparkline={kpiData.outstanding.sparkline} color="var(--color-chart-amber)" icon={Clock} delay={0.4} />
+        <MiniChartCard title="Total Revenue" value={kpiData.revenue.val} trend={kpiData.revenue.trend} sparkline={kpiData.revenue.sparkline} color="var(--color-chart-blue)" icon={Wallet} delay={0.1} />
+        <MiniChartCard title="Net Profit" value={kpiData.profit.val} trend={kpiData.profit.trend} sparkline={kpiData.profit.sparkline} color="var(--color-chart-emerald)" icon={TrendUp} delay={0.15} />
+        <MiniChartCard title="Expenses" value={kpiData.expenses.val} trend={kpiData.expenses.trend} sparkline={kpiData.expenses.sparkline} color="var(--color-chart-expense)" icon={TrendDown} delay={0.2} />
+        <MiniChartCard title="Outstanding Payments" value={kpiData.outstanding.val} trend={kpiData.outstanding.trend} sparkline={kpiData.outstanding.sparkline} color="var(--color-chart-amber)" icon={Clock} delay={0.25} />
+        <MiniChartCard title="Paid Invoices" value={kpiData.paidInvoices.val} trend={kpiData.paidInvoices.trend} sparkline={kpiData.paidInvoices.sparkline} color="var(--color-chart-emerald)" icon={CheckCircle} delay={0.3} />
+        <MiniChartCard title="Pending Invoices" value={kpiData.pendingInvoices.val} trend={kpiData.pendingInvoices.trend} sparkline={kpiData.pendingInvoices.sparkline} color="var(--color-chart-amber)" icon={WarningCircle} delay={0.35} />
+        <MiniChartCard title="Total Clients" value={kpiData.totalClients.val} trend={kpiData.totalClients.trend} sparkline={kpiData.totalClients.sparkline} color="var(--color-chart-purple)" icon={Users} delay={0.4} />
+        <MiniChartCard title="Total Products" value={kpiData.totalProducts.val} trend={kpiData.totalProducts.trend} sparkline={kpiData.totalProducts.sparkline} color="var(--color-text-secondary)" icon={ChartLineUp} delay={0.45} />
+      </div>
+
+      <motion.div 
+        className={styles.quickStatsBar}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <span><strong>Today's Stats:</strong></span>
+        <span>Revenue: <strong>₨ 15,000</strong></span>
+        <span>Expenses: <strong>₨ 2,400</strong></span>
+        <span>Payments: <strong>3</strong></span>
+        <span>Invoices Created: <strong>5</strong></span>
+        <span>Clients Added: <strong>1</strong></span>
+      </motion.div>
+
+      <div className={styles.widgetsGrid}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}><HealthScoreWidget /></motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}><RevenueGoalWidget /></motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}><UpcomingDueCalendar /></motion.div>
+      </div>
+
+      <div className={styles.widgetsGridSplit}>
+        <motion.div className={styles.aiInsightsWrap} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}><AIInsightsWidget /></motion.div>
+        <motion.div className={styles.recentPaymentsWrap} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}><RecentPaymentsWidget /></motion.div>
       </div>
 
       <div className={styles.chartsRow}>

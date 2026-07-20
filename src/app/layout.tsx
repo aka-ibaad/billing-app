@@ -1,5 +1,8 @@
 import Navigation from '@/components/Navigation';
 import TopBar from '@/components/TopBar';
+import CommandPalette from '@/components/CommandPalette';
+import NotificationCenter from '@/components/NotificationCenter';
+import FloatingQuickCreate from '@/components/FloatingQuickCreate';
 import { AppDataProvider } from '@/context/AppDataContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import type { Metadata } from 'next';
@@ -38,6 +41,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           <AppDataProvider>
+            <CommandPalette />
+            <NotificationCenter />
+            <FloatingQuickCreate />
             <div className="app-layout">
               <Navigation />
               <main className="main-content">

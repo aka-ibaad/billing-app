@@ -85,11 +85,6 @@ export default function Navigation() {
       </div>
       
       <div className={styles.navBottom}>
-        <div className={styles.subscriptionCard}>
-          <Sparkle size={16} weight="duotone" color="var(--color-chart-emerald)" />
-          <span>Pro Plan</span>
-        </div>
-        
         <Link href="/settings" className={styles.profileSection}>
           <div className={styles.profileAvatar}>
             {settings.logoUrl ? (
@@ -97,6 +92,7 @@ export default function Navigation() {
             ) : (
               initials
             )}
+            <div className={styles.onlineIndicator} />
           </div>
           <div className={styles.profileInfo}>
             <span className={styles.profileName}>Admin</span>
