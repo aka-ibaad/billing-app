@@ -1,13 +1,13 @@
 .container {
-  padding: var(--space-12) var(--space-8);
-  max-width: 1000px;
+  padding: 40px 32px 64px 32px;
+  max-width: 1320px;
   margin: 0 auto;
 }
 
 .header {
-  margin-bottom: var(--space-12);
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: var(--space-4);
+  padding-bottom: 16px;
 }
 
 .title {
@@ -18,16 +18,24 @@
 }
 
 .content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.sectionFull {
+  grid-column: 1 / -1;
 }
 
 .section {
   display: flex;
   flex-direction: column;
+  gap: 16px;
   background: var(--color-bg-secondary);
-  padding: var(--space-8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 24px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-sm), var(--inner-glow);
@@ -36,32 +44,30 @@
 .sectionTitle {
   font-size: var(--text-lg);
   font-weight: 500;
-  margin-bottom: var(--space-2);
+  margin-bottom: 4px;
   color: var(--color-text-primary);
 }
 
 .sectionDesc {
   color: var(--color-text-secondary);
   font-size: var(--text-sm);
-  margin-bottom: var(--space-8);
+  margin-bottom: 16px;
 }
 
 .form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
+  display: contents;
 }
 
 .formRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
+  gap: 16px;
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 6px;
 }
 
 .formGroup label {
@@ -104,17 +110,17 @@
 .themeGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-6);
-  margin-top: var(--space-2);
+  gap: 16px;
+  margin-top: 4px;
 }
 
 .themeCard {
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  padding: 16px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 8px;
   transition: transform 0.2s var(--ease-spring), border-color 0.2s var(--ease-custom), box-shadow 0.2s var(--ease-custom);
   position: relative;
   text-align: left;
@@ -226,7 +232,7 @@
 
 /* Base Actions */
 .formActions {
-  margin-top: var(--space-8);
+  margin-top: 0;
   display: flex;
   justify-content: flex-start;
 }
@@ -287,6 +293,12 @@
   border-color: rgba(255, 68, 68, 0.3);
 }
 
+@media (max-width: 1100px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1024px) {
   .themeGrid {
     grid-template-columns: 1fr;
@@ -296,6 +308,10 @@
 @media (max-width: 768px) {
   .formRow {
     grid-template-columns: 1fr;
-    gap: var(--space-4);
+    gap: 12px;
+  }
+
+  .container {
+    padding: 24px 16px 48px 16px;
   }
 }

@@ -1,37 +1,56 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAppData } from '@/context/AppDataContext';
-import { Plus } from '@phosphor-icons/react';
+import { Plus, Trash } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 
-export default function ExpensesPage() {
-  const { expenses, addExpense, updateExpense } = useAppData();
+const emptyExpense = {
+  payeeName: '',
+  description: '',
+  amount: 0,
+  category: 'Other' as 'Materials' | 'Outsourced' | 'Other',
+  status: 'Paid' as 'Paid' | 'Unpaid',
+  date: new Date().toISOString().split('T')[0],
+};
+
+function ExpensesContent() {
+  const { expenses, addExpense, updateExpense, deleteExpense } = useAppData();
+  const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
-  
-  const [newExpense, setNewExpense] = useState({
-    payeeName: '',
-    description: '',
-    amount: 0,
-    category: 'Other' as 'Materials' | 'Outsourced' | 'Other',
-    status: 'Paid' as 'Paid' | 'Unpaid',
-    date: new Date().toISOString().split('T')[0],
-  });
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setIsCreating(true);
+    }
+  }, [searchParams]);
+
+  const [newExpense, setNewExpense] = useState(emptyExpense);
+
+  const isFormDirty = () => newExpense.payeeName.trim() !== '' || newExpense.description.trim() !== '' || newExpense.amount !== 0;
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newExpense.payeeName) return;
     addExpense(newExpense);
-    setNewExpense({
-      payeeName: '',
-      description: '',
-      amount: 0,
-      category: 'Other',
-      status: 'Paid',
-      date: new Date().toISOString().split('T')[0],
-    });
+    setNewExpense(emptyExpense);
     setIsCreating(false);
+  };
+
+  const handleToggleCreate = () => {
+    if (isCreating && isFormDirty() && !window.confirm('Discard this expense entry? Your entries will be lost.')) {
+      return;
+    }
+    if (isCreating) setNewExpense(emptyExpense);
+    setIsCreating(!isCreating);
+  };
+
+  const handleDeleteExpense = (id: string, payeeName: string) => {
+    if (window.confirm(`Delete this expense for "${payeeName}"? This cannot be undone.`)) {
+      deleteExpense(id);
+    }
   };
 
   return (
@@ -44,7 +63,7 @@ export default function ExpensesPage() {
           </p>
         </div>
         <div className={styles.controls}>
-          <button className={styles.primaryButton} onClick={() => setIsCreating(!isCreating)}>
+          <button className={styles.primaryButton} onClick={handleToggleCreate}>
             <Plus size={18} />
             {isCreating ? 'Cancel' : 'Log Expense'}
           </button>
@@ -183,10 +202,18 @@ export default function ExpensesPage() {
                   <td className={`${styles.textRight} mono-text`}>
                     ₨ {expense.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
-                  <td className={styles.textRight}>
+                  <td className={styles.textRight} style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                     <button className={styles.primaryButton} style={{ padding: '6px 12px', fontSize: '10px' }} onClick={() => {
                       updateExpense(expense.id, { status: expense.status === 'Paid' ? 'Unpaid' : 'Paid' });
                     }}>Toggle</button>
+                    <button
+                      type="button"
+                      className={styles.iconButton}
+                      aria-label={`Delete expense for ${expense.payeeName}`}
+                      onClick={() => handleDeleteExpense(expense.id, expense.payeeName)}
+                    >
+                      <Trash size={16} />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -196,5 +223,13 @@ export default function ExpensesPage() {
       </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function ExpensesPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '24px' }}>Loading...</div>}>
+      <ExpensesContent />
+    </Suspense>
   );
 }

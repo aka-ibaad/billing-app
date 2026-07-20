@@ -28,9 +28,9 @@ export default function FloatingQuickCreate() {
   const actions = [
     { id: 'invoice', label: 'Invoice', icon: FileText, onClick: () => router.push('/invoices?create=true') },
     { id: 'receipt', label: 'Receipt', icon: Receipt, onClick: () => router.push('/invoices?create=true') },
-    { id: 'client', label: 'Client', icon: Users, onClick: () => router.push('/clients/new') },
-    { id: 'product', label: 'Product', icon: ChartLineUp, onClick: () => router.push('/products/new') },
-    { id: 'expense', label: 'Expense', icon: FilePlus, onClick: () => router.push('/expenses/new') },
+    { id: 'client', label: 'Client', icon: Users, onClick: () => router.push('/clients?create=true') },
+    { id: 'product', label: 'Product', icon: ChartLineUp, onClick: () => router.push('/products?create=true') },
+    { id: 'expense', label: 'Expense', icon: FilePlus, onClick: () => router.push('/expenses?create=true') },
   ];
 
   return (
@@ -74,6 +74,8 @@ export default function FloatingQuickCreate() {
         onClick={() => setIsOpen(!isOpen)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
+        aria-label={isOpen ? 'Close quick create menu' : 'Open quick create menu'}
+        aria-expanded={isOpen}
       >
         <motion.div
           animate={{ rotate: isOpen ? 45 : 0 }}

@@ -14,6 +14,8 @@
   width: 100%;
   max-width: 400px;
   background: var(--color-bg-secondary);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-left: 1px solid var(--color-border);
   box-shadow: var(--shadow-glass), -8px 0 32px rgba(0,0,0,0.2);
   z-index: 1001;
@@ -118,10 +120,10 @@
   flex-shrink: 0;
 }
 
-.payment { background: rgba(16, 185, 129, 0.1); color: var(--color-chart-emerald); }
-.invoice { background: rgba(59, 130, 246, 0.1); color: var(--color-chart-blue); }
-.system { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
-.alert { background: rgba(239, 68, 68, 0.1); color: var(--color-chart-expense); }
+.success { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
+.info { background: rgba(59, 130, 246, 0.1); color: var(--color-chart-blue); }
+.warning { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
+.error { background: rgba(239, 68, 68, 0.1); color: var(--color-danger); }
 
 .content {
   flex: 1;

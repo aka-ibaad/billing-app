@@ -15,6 +15,7 @@ const navItems = [
   { id: 'products', path: '/products', label: 'Products', icon: ChartLineUp },
   { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt },
   { id: 'records', path: '/records', label: 'Records', icon: FileText },
+  { id: 'insights', path: '/insights', label: 'Insights', icon: Sparkle },
 ];
 
 export default function Navigation() {

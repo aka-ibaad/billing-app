@@ -1,25 +1,60 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Trash } from '@phosphor-icons/react';
+import { TopClientsChart } from '@/components/dashboard/DetailedCharts';
 import styles from './page.module.css';
 
-export default function ClientsPage() {
-  const { clients, invoices, addClient } = useAppData();
+function ClientsContent() {
+  const { clients, invoices, addClient, deleteClient } = useAppData();
+  const searchParams = useSearchParams();
   const [isAdding, setIsAdding] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', address: '' });
-  
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setIsAdding(true);
+    }
+  }, [searchParams]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
 
+  const isFormDirty = () => Object.values(newClient).some(v => v.trim() !== '');
+
   const handleAddClient = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClient.name || !newClient.email) return;
-    
+    if (!newClient.name || !newClient.email) {
+      setFormError('Company name and email are required.');
+      return;
+    }
+
     addClient(newClient);
     setNewClient({ name: '', email: '', phone: '', address: '' });
+    setFormError('');
     setIsAdding(false);
+  };
+
+  const handleCancel = () => {
+    if (isFormDirty() && !window.confirm('Discard this new client? Your entries will be lost.')) {
+      return;
+    }
+    setNewClient({ name: '', email: '', phone: '', address: '' });
+    setFormError('');
+    setIsAdding(false);
+  };
+
+  const handleDeleteClient = (id: string, name: string, invoiceCount: number) => {
+    const warning = invoiceCount > 0
+      ? `Delete ${name}? This client has ${invoiceCount} invoice${invoiceCount === 1 ? '' : 's'} on record. The client will be removed, but their invoices will remain.`
+      : `Delete ${name}? This cannot be undone.`;
+    if (window.confirm(warning)) {
+      deleteClient(id);
+    }
   };
 
   const filteredClients = clients
@@ -95,8 +130,11 @@ export default function ClientsPage() {
                   placeholder="123 Industrial Way"
                 />
               </div>
+              {formError && (
+                <p role="alert" style={{ color: 'var(--color-danger)', fontSize: '13px', marginTop: '-4px' }}>{formError}</p>
+              )}
               <div className={styles.formActions}>
-                <button type="button" className={styles.cancelButton} onClick={() => setIsAdding(false)}>Cancel</button>
+                <button type="button" className={styles.cancelButton} onClick={handleCancel}>Cancel</button>
                 <button type="submit" className={styles.submitButton}>Save Client</button>
               </div>
               </form>
@@ -105,10 +143,16 @@ export default function ClientsPage() {
         )}
       </AnimatePresence>
 
+      {clients.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <TopClientsChart invoices={invoices} expenses={[]} clients={clients} products={[]} filter="30D" compact />
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
-        <input 
-          type="text" 
-          placeholder="Search clients..." 
+        <input
+          type="text"
+          placeholder="Search clients..."
           className={styles.input}
           style={{ width: '300px' }}
           value={searchQuery}
@@ -142,12 +186,13 @@ export default function ClientsPage() {
                   <th>Email</th>
                   <th>Added</th>
                   <th className={styles.textRight}>Total Invoices</th>
+                  <th className={styles.textRight}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredClients.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className={styles.emptyState}>No clients found.</td>
+                    <td colSpan={5} className={styles.emptyState}>No clients found.</td>
                   </tr>
             ) : (
               filteredClients.map(client => {
@@ -158,6 +203,16 @@ export default function ClientsPage() {
                     <td>{client.email}</td>
                     <td className="mono-text">{new Date(client.createdAt).toLocaleDateString()}</td>
                     <td className={`${styles.textRight} mono-text`}>{clientInvoicesCount}</td>
+                    <td className={styles.textRight}>
+                      <button
+                        type="button"
+                        className={styles.iconButton}
+                        aria-label={`Delete ${client.name}`}
+                        onClick={() => handleDeleteClient(client.id, client.name, clientInvoicesCount)}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </td>
                   </tr>
                 );
               })
@@ -168,5 +223,13 @@ export default function ClientsPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function ClientsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '24px' }}>Loading...</div>}>
+      <ClientsContent />
+    </Suspense>
   );
 }

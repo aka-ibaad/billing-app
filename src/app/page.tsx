@@ -5,23 +5,13 @@ import Link from 'next/link';
 import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
-import AIInsightsWidget from '@/components/dashboard/AIInsightsWidget';
-import HealthScoreWidget from '@/components/dashboard/HealthScoreWidget';
-import UpcomingDueCalendar from '@/components/dashboard/UpcomingDueCalendar';
-import RevenueGoalWidget from '@/components/dashboard/RevenueGoalWidget';
 import RecentPaymentsWidget from '@/components/dashboard/RecentPaymentsWidget';
-import { 
-  RevenueExpenseChart, MonthlyRevenueChart, InvoiceStatusChart, PaymentMethodsChart,
-  DailySalesChart, TopClientsChart, TopProductsChart, IncomeProfitChart 
-} from '@/components/dashboard/DetailedCharts';
-import { 
+import {
   Wallet, WarningCircle, CheckCircle, Clock, TrendUp, TrendDown,
-  Plus, Users, ChartLineUp, Receipt, FileText, ArrowRight,
-  ArrowUpRight, ArrowDownRight, CalendarBlank, Sparkle, Truck
+  Users, ChartLineUp, Receipt, FileText, ArrowRight, Truck
 } from '@phosphor-icons/react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell 
+import {
+  AreaChart, Area, ResponsiveContainer
 } from 'recharts';
 
 type FilterType = '7D' | '30D' | '12M';
@@ -152,74 +142,6 @@ export default function Dashboard() {
     };
   }, [validInvoices, expenses, clients, products, filter]);
 
-  const mainChartData = useMemo(() => {
-    const data: { label: string; Revenue: number; Expenses: number; dateStr?: string; weekOffset?: number; key?: string }[] = [];
-    const now = new Date();
-    if (filter === '7D') {
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now); d.setDate(d.getDate() - i);
-        data.push({ label: d.toLocaleDateString(undefined, { weekday: 'short' }), Revenue: 0, Expenses: 0, dateStr: d.toISOString().split('T')[0] });
-      }
-    } else if (filter === '30D') {
-      for (let i = 4; i >= 0; i--) { data.push({ label: `Week ${5 - i}`, Revenue: 0, Expenses: 0, weekOffset: i }); }
-    } else {
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        data.push({ label: d.toLocaleDateString(undefined, { month: 'short' }), Revenue: 0, Expenses: 0, key: `${d.getFullYear()}-${d.getMonth()}` });
-      }
-    }
-
-    validInvoices.forEach(inv => {
-      const d = new Date(inv.issueDate);
-      const paid = getInvoicePaidAmount(inv);
-      if(filter === '7D') {
-        const match = data.find(x => x.dateStr === d.toISOString().split('T')[0]);
-        if(match) match.Revenue += paid;
-      } else if (filter === '30D') {
-        const diffDays = Math.ceil(Math.abs(now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 30) {
-          const match = data.find(x => x.weekOffset === Math.min(Math.floor(diffDays / 7), 4));
-          if(match) match.Revenue += paid;
-        }
-      } else {
-        const match = data.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
-        if(match) match.Revenue += paid;
-      }
-    });
-
-    expenses.forEach(exp => {
-      const d = new Date(exp.date);
-      if(filter === '7D') {
-        const match = data.find(x => x.dateStr === d.toISOString().split('T')[0]);
-        if(match) match.Expenses += exp.amount;
-      } else if (filter === '30D') {
-        const diffDays = Math.ceil(Math.abs(now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays <= 30) {
-          const match = data.find(x => x.weekOffset === Math.min(Math.floor(diffDays / 7), 4));
-          if(match) match.Expenses += exp.amount;
-        }
-      } else {
-        const match = data.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
-        if(match) match.Expenses += exp.amount;
-      }
-    });
-    return filter === '30D' ? data.reverse() : data;
-  }, [validInvoices, expenses, filter]);
-
-  const statusCounts = {
-    paid: validInvoices.filter(i => i.status === 'Paid').length,
-    pending: validInvoices.filter(i => i.status === 'Pending').length,
-    overdue: validInvoices.filter(i => i.status === 'Overdue').length,
-    draft: validInvoices.filter(i => i.status === 'Draft').length,
-  };
-
-  const pieData = [
-    { name: 'Paid', value: statusCounts.paid, color: 'var(--color-chart-emerald)' },
-    { name: 'Pending', value: statusCounts.pending, color: 'var(--color-chart-amber)' },
-    { name: 'Overdue', value: statusCounts.overdue, color: 'var(--color-chart-expense)' },
-    { name: 'Draft', value: statusCounts.draft, color: 'var(--color-text-muted)' },
-  ].filter(d => d.value > 0);
-
   const recentInvoices = [...validInvoices].reverse().slice(0, 5);
 
   const dueDeliveries = useMemo(() => {
@@ -233,6 +155,22 @@ export default function Dashboard() {
       client: clients.find(c => c.id === inv.clientId)
     })).sort((a, b) => new Date(a.expectedReadyDate!).getTime() - new Date(b.expectedReadyDate!).getTime());
   }, [validInvoices, clients]);
+
+  const todayStats = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const invoicesToday = validInvoices.filter(inv => inv.issueDate === todayStr);
+    const paymentsToday = validInvoices.filter(inv => inv.status === 'Paid' && inv.issueDate === todayStr);
+    const revenueToday = invoicesToday.reduce((sum, inv) => sum + getInvoicePaidAmount(inv), 0);
+    const expensesToday = expenses.filter(e => e.date.split('T')[0] === todayStr).reduce((sum, e) => sum + e.amount, 0);
+    const clientsToday = clients.filter(c => c.createdAt.split('T')[0] === todayStr).length;
+    return {
+      revenue: revenueToday,
+      expenses: expensesToday,
+      payments: paymentsToday.length,
+      invoicesCreated: invoicesToday.length,
+      clientsAdded: clientsToday,
+    };
+  }, [validInvoices, expenses, clients]);
 
   const activities = useMemo(() => {
     const list: any[] = [];
@@ -248,9 +186,9 @@ export default function Dashboard() {
     return list.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()).slice(0, 5);
   }, [validInvoices, expenses]);
 
-  const MiniChartCard = ({ title, value, trend, sparkline, color, icon: Icon, delay }: any) => (
-    <motion.div 
-      className={styles.metricCard}
+  const MiniChartCard = ({ title, value, trend, sparkline, color, icon: Icon, delay, large }: any) => (
+    <motion.div
+      className={`${styles.metricCard} ${large ? styles.metricCardLarge : ''}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.32, 0.72, 0, 1] }}
@@ -346,15 +284,17 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
 
+      {/* Trimmed from 8 uniform tiles to the 5 metrics that matter for a
+          day-to-day glance (Paid Invoices, Total Clients, and Total Products
+          are still visible on Invoices/Clients/Products/Insights - repeating
+          them here was redundant). Total Revenue is promoted to a large
+          "hero" tile in a bento layout instead of an equal-sized grid. */}
       <div className={styles.summaryGrid}>
-        <MiniChartCard title="Total Revenue" value={kpiData.revenue.val} trend={kpiData.revenue.trend} sparkline={kpiData.revenue.sparkline} color="var(--color-chart-blue)" icon={Wallet} delay={0.1} />
+        <MiniChartCard title="Total Revenue" value={kpiData.revenue.val} trend={kpiData.revenue.trend} sparkline={kpiData.revenue.sparkline} color="var(--color-chart-blue)" icon={Wallet} delay={0.1} large />
         <MiniChartCard title="Net Profit" value={kpiData.profit.val} trend={kpiData.profit.trend} sparkline={kpiData.profit.sparkline} color="var(--color-chart-emerald)" icon={TrendUp} delay={0.15} />
         <MiniChartCard title="Expenses" value={kpiData.expenses.val} trend={kpiData.expenses.trend} sparkline={kpiData.expenses.sparkline} color="var(--color-chart-expense)" icon={TrendDown} delay={0.2} />
         <MiniChartCard title="Outstanding Payments" value={kpiData.outstanding.val} trend={kpiData.outstanding.trend} sparkline={kpiData.outstanding.sparkline} color="var(--color-chart-amber)" icon={Clock} delay={0.25} />
-        <MiniChartCard title="Paid Invoices" value={kpiData.paidInvoices.val} trend={kpiData.paidInvoices.trend} sparkline={kpiData.paidInvoices.sparkline} color="var(--color-chart-emerald)" icon={CheckCircle} delay={0.3} />
-        <MiniChartCard title="Pending Invoices" value={kpiData.pendingInvoices.val} trend={kpiData.pendingInvoices.trend} sparkline={kpiData.pendingInvoices.sparkline} color="var(--color-chart-amber)" icon={WarningCircle} delay={0.35} />
-        <MiniChartCard title="Total Clients" value={kpiData.totalClients.val} trend={kpiData.totalClients.trend} sparkline={kpiData.totalClients.sparkline} color="var(--color-chart-purple)" icon={Users} delay={0.4} />
-        <MiniChartCard title="Total Products" value={kpiData.totalProducts.val} trend={kpiData.totalProducts.trend} sparkline={kpiData.totalProducts.sparkline} color="var(--color-text-secondary)" icon={ChartLineUp} delay={0.45} />
+        <MiniChartCard title="Pending Invoices" value={kpiData.pendingInvoices.val} trend={kpiData.pendingInvoices.trend} sparkline={kpiData.pendingInvoices.sparkline} color="var(--color-chart-amber)" icon={WarningCircle} delay={0.3} />
       </div>
 
       <motion.div 
@@ -364,49 +304,16 @@ export default function Dashboard() {
         transition={{ delay: 0.5 }}
       >
         <span><strong>Today's Stats:</strong></span>
-        <span>Revenue: <strong>₨ 15,000</strong></span>
-        <span>Expenses: <strong>₨ 2,400</strong></span>
-        <span>Payments: <strong>3</strong></span>
-        <span>Invoices Created: <strong>5</strong></span>
-        <span>Clients Added: <strong>1</strong></span>
+        <span>Revenue: <strong>₨ {todayStats.revenue.toLocaleString()}</strong></span>
+        <span>Expenses: <strong>₨ {todayStats.expenses.toLocaleString()}</strong></span>
+        <span>Payments: <strong>{todayStats.payments}</strong></span>
+        <span>Invoices Created: <strong>{todayStats.invoicesCreated}</strong></span>
+        <span>Clients Added: <strong>{todayStats.clientsAdded}</strong></span>
       </motion.div>
 
-      <div className={styles.widgetsGrid}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}><HealthScoreWidget /></motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}><RevenueGoalWidget /></motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}><UpcomingDueCalendar /></motion.div>
-      </div>
-      <div className={styles.widgetsGridSplit}>
-        <motion.div className={styles.aiInsightsWrap} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}><AIInsightsWidget /></motion.div>
-        <motion.div className={styles.recentPaymentsWrap} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}><RecentPaymentsWidget /></motion.div>
-      </div>
-
-      <div className={styles.detailedChartsGrid}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
-          <RevenueExpenseChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
-          <MonthlyRevenueChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
-          <InvoiceStatusChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
-          <PaymentMethodsChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.9 }}>
-          <DailySalesChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.0 }}>
-          <TopClientsChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.1 }}>
-          <TopProductsChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.2 }}>
-          <IncomeProfitChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
-        </motion.div>
-      </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+        <RecentPaymentsWidget />
+      </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
         <h2 className={styles.sectionTitle}>Quick Actions</h2>
@@ -415,26 +322,26 @@ export default function Dashboard() {
             <FileText size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-blue)" />
             <span className={styles.actionLabel}>New Invoice</span>
           </Link>
-          <Link href="/clients/new" className={styles.actionCard}>
+          <Link href="/clients?create=true" className={styles.actionCard}>
             <Users size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-emerald)" />
             <span className={styles.actionLabel}>Add Client</span>
           </Link>
-          <Link href="/products/new" className={styles.actionCard}>
+          <Link href="/products?create=true" className={styles.actionCard}>
             <ChartLineUp size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-purple)" />
             <span className={styles.actionLabel}>Add Product</span>
           </Link>
-          <Link href="/expenses" className={styles.actionCard}>
+          <Link href="/expenses?create=true" className={styles.actionCard}>
             <Receipt size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-expense)" />
             <span className={styles.actionLabel}>Record Expense</span>
           </Link>
-          <div className={styles.actionCard} style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-            <FileText size={24} weight="duotone" className={styles.actionIcon} />
+          <Link href="/invoices?create=true&format=vertical" className={styles.actionCard}>
+            <FileText size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-blue)" />
             <span className={styles.actionLabel}>Create Receipt</span>
-          </div>
-          <div className={styles.actionCard} style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-            <Wallet size={24} weight="duotone" className={styles.actionIcon} />
+          </Link>
+          <Link href="/records" className={styles.actionCard}>
+            <Wallet size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-amber)" />
             <span className={styles.actionLabel}>View Reports</span>
-          </div>
+          </Link>
         </div>
       </motion.div>
 

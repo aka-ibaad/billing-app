@@ -1,20 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAppData } from '@/context/AppDataContext';
-import { Plus } from '@phosphor-icons/react';
+import { Plus, Trash } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TopProductsChart } from '@/components/dashboard/DetailedCharts';
 import styles from './page.module.css';
 
-export default function ProductsPage() {
-  const { products, addProduct } = useAppData();
+function ProductsContent() {
+  const { products, addProduct, deleteProduct, invoices } = useAppData();
+  const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
-  
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setIsCreating(true);
+    }
+  }, [searchParams]);
+
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
     defaultRate: 0,
   });
+
+  const isFormDirty = () => newProduct.name.trim() !== '' || newProduct.description.trim() !== '' || newProduct.defaultRate !== 0;
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +33,20 @@ export default function ProductsPage() {
     addProduct(newProduct);
     setNewProduct({ name: '', description: '', defaultRate: 0 });
     setIsCreating(false);
+  };
+
+  const handleToggleCreate = () => {
+    if (isCreating && isFormDirty() && !window.confirm('Discard this new product? Your entries will be lost.')) {
+      return;
+    }
+    if (isCreating) setNewProduct({ name: '', description: '', defaultRate: 0 });
+    setIsCreating(!isCreating);
+  };
+
+  const handleDeleteProduct = (id: string, name: string) => {
+    if (window.confirm(`Delete "${name}"? This cannot be undone.`)) {
+      deleteProduct(id);
+    }
   };
 
   return (
@@ -34,7 +59,7 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className={styles.controls}>
-          <button className={styles.primaryButton} onClick={() => setIsCreating(!isCreating)}>
+          <button className={styles.primaryButton} onClick={handleToggleCreate}>
             <Plus size={18} />
             {isCreating ? 'Cancel' : 'New Product'}
           </button>
@@ -95,7 +120,13 @@ export default function ProductsPage() {
         )}
       </AnimatePresence>
 
-      <motion.div 
+      {products.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <TopProductsChart invoices={invoices} expenses={[]} clients={[]} products={products} filter="30D" compact />
+        </div>
+      )}
+
+      <motion.div
         className={styles.tableOuter}
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -108,12 +139,13 @@ export default function ProductsPage() {
               <th>Name</th>
               <th>Description</th>
               <th className={styles.textRight}>Default Rate</th>
+              <th className={styles.textRight}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan={3} className={styles.emptyState}>No products found. Create one to get started.</td>
+                <td colSpan={4} className={styles.emptyState}>No products found. Create one to get started.</td>
               </tr>
             ) : (
               products.map(product => (
@@ -123,6 +155,16 @@ export default function ProductsPage() {
                   <td className={`${styles.textRight} mono-text`}>
                     ₨ {product.defaultRate.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
+                  <td className={styles.textRight}>
+                    <button
+                      type="button"
+                      className={styles.iconButton}
+                      aria-label={`Delete ${product.name}`}
+                      onClick={() => handleDeleteProduct(product.id, product.name)}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -131,5 +173,13 @@ export default function ProductsPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '24px' }}>Loading...</div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }

@@ -113,8 +113,9 @@ export default function CommandPalette() {
       title: 'Quick Actions',
       items: [
         { id: 'create-invoice', icon: Plus, title: 'Create new Invoice', shortcut: '⌘N', onSelect: () => closeAndRun(() => router.push('/invoices?create=true')) },
-        { id: 'create-client', icon: Plus, title: 'Add new Client', onSelect: () => closeAndRun(() => router.push('/clients/new')) },
-        { id: 'record-expense', icon: Plus, title: 'Record Expense', onSelect: () => closeAndRun(() => router.push('/expenses/new')) },
+        { id: 'create-client', icon: Plus, title: 'Add new Client', onSelect: () => closeAndRun(() => router.push('/clients?create=true')) },
+        { id: 'create-product', icon: Plus, title: 'Add new Product', onSelect: () => closeAndRun(() => router.push('/products?create=true')) },
+        { id: 'record-expense', icon: Plus, title: 'Record Expense', onSelect: () => closeAndRun(() => router.push('/expenses?create=true')) },
       ],
     },
     {
@@ -138,7 +139,7 @@ export default function CommandPalette() {
         title: 'Invoices',
         items: filteredInvoices.slice(0, 5).map(inv => ({
           id: `inv-${inv.id}`, icon: FileText, title: inv.number, subtitle: clients.find(c => c.id === inv.clientId)?.name || 'Unknown Client',
-          onSelect: () => closeAndRun(() => router.push(`/invoices/${inv.id}`))
+          onSelect: () => closeAndRun(() => router.push('/invoices'))
         }))
       });
     }
@@ -150,7 +151,7 @@ export default function CommandPalette() {
         title: 'Clients',
         items: filteredClients.slice(0, 5).map(c => ({
           id: `client-${c.id}`, icon: Users, title: c.name, subtitle: c.email,
-          onSelect: () => closeAndRun(() => router.push(`/clients/${c.id}`))
+          onSelect: () => closeAndRun(() => router.push('/clients'))
         }))
       });
     }
@@ -162,7 +163,7 @@ export default function CommandPalette() {
         title: 'Products',
         items: filteredProducts.slice(0, 5).map(p => ({
           id: `prod-${p.id}`, icon: Package, title: p.name, subtitle: `₨ ${p.defaultRate}`,
-          onSelect: () => closeAndRun(() => router.push(`/products/${p.id}`))
+          onSelect: () => closeAndRun(() => router.push('/products'))
         }))
       });
     }
@@ -174,7 +175,7 @@ export default function CommandPalette() {
         title: 'Expenses',
         items: filteredExpenses.slice(0, 5).map(e => ({
           id: `exp-${e.id}`, icon: Receipt, title: e.payeeName, subtitle: `₨ ${e.amount} - ${e.description}`,
-          onSelect: () => closeAndRun(() => router.push(`/expenses/${e.id}`))
+          onSelect: () => closeAndRun(() => router.push('/expenses'))
         }))
       });
     }

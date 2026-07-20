@@ -1,16 +1,25 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Target } from '@phosphor-icons/react';
+import { Target, PencilSimple, Check } from '@phosphor-icons/react';
 import { useAppData } from '@/context/AppDataContext';
 import styles from './RevenueGoalWidget.module.css';
 
 export default function RevenueGoalWidget() {
-  const { invoices } = useAppData();
-  
-  // Example monthly goal
-  const monthlyGoal = 1000000;
+  const { invoices, monthlyRevenueGoal, setMonthlyRevenueGoal } = useAppData();
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftGoal, setDraftGoal] = useState(String(monthlyRevenueGoal));
+
+  const monthlyGoal = monthlyRevenueGoal;
+
+  const handleSaveGoal = () => {
+    const parsed = Number(draftGoal);
+    if (!isNaN(parsed) && parsed > 0) {
+      setMonthlyRevenueGoal(parsed);
+    }
+    setIsEditing(false);
+  };
 
   const currentRevenue = useMemo(() => {
     const currentMonth = new Date().getMonth();
@@ -37,6 +46,14 @@ export default function RevenueGoalWidget() {
           <Target size={18} weight="duotone" />
         </div>
         <div className={styles.title}>Monthly Goal</div>
+        <button
+          type="button"
+          aria-label={isEditing ? 'Save monthly goal' : 'Edit monthly goal'}
+          onClick={() => isEditing ? handleSaveGoal() : setIsEditing(true)}
+          style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+        >
+          {isEditing ? <Check size={16} /> : <PencilSimple size={16} />}
+        </button>
       </div>
 
       <div className={styles.gaugeContainer}>
@@ -61,7 +78,24 @@ export default function RevenueGoalWidget() {
 
       <div className={styles.details}>
         <div className={styles.current}>₨ {currentRevenue.toLocaleString()}</div>
-        <div className={styles.target}>of ₨ {monthlyGoal.toLocaleString()} target</div>
+        {isEditing ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginTop: '4px' }}>
+            <span className={styles.target}>of ₨</span>
+            <input
+              type="number"
+              min="1"
+              autoFocus
+              value={draftGoal}
+              onChange={(e) => setDraftGoal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveGoal(); }}
+              style={{ width: '100px', padding: '2px 6px', fontSize: '12px', background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', borderRadius: '4px', color: 'var(--color-text-primary)' }}
+              aria-label="Monthly revenue goal amount"
+            />
+            <span className={styles.target}>target</span>
+          </div>
+        ) : (
+          <div className={styles.target}>of ₨ {monthlyGoal.toLocaleString()} target</div>
+        )}
       </div>
     </div>
   );

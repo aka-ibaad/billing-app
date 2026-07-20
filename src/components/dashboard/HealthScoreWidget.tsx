@@ -2,16 +2,16 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Heartbeat, TrendUp } from '@phosphor-icons/react';
+import { Heartbeat, TrendUp, TrendDown, Minus } from '@phosphor-icons/react';
 import { useAppData } from '@/context/AppDataContext';
 import styles from './HealthScoreWidget.module.css';
 
 export default function HealthScoreWidget() {
   const { invoices } = useAppData();
 
-  const score = useMemo(() => {
-    if (invoices.length === 0) return 100;
-    
+  const { score, overdueRatio } = useMemo(() => {
+    if (invoices.length === 0) return { score: 100, overdueRatio: 0 };
+
     let totalValue = 0;
     let paidValue = 0;
     let overdueValue = 0;
@@ -23,17 +23,21 @@ export default function HealthScoreWidget() {
       if (inv.status === 'Overdue') overdueValue += val;
     });
 
-    if (totalValue === 0) return 100;
+    if (totalValue === 0) return { score: 100, overdueRatio: 0 };
 
-    // Base score is 50. 
+    // Base score is 50.
     // Up to +50 points for paid ratio.
     // Up to -30 points for overdue ratio.
     const paidRatio = paidValue / totalValue;
-    const overdueRatio = overdueValue / totalValue;
+    const ovRatio = overdueValue / totalValue;
 
-    let calc = 50 + (paidRatio * 50) - (overdueRatio * 30);
-    return Math.max(0, Math.min(100, Math.round(calc)));
+    let calc = 50 + (paidRatio * 50) - (ovRatio * 30);
+    return { score: Math.max(0, Math.min(100, Math.round(calc))), overdueRatio: ovRatio };
   }, [invoices]);
+
+  const cashflowStatus = overdueRatio > 0.3 ? 'At Risk' : overdueRatio > 0.1 ? 'Watch' : 'Healthy';
+  const CashflowIcon = overdueRatio > 0.3 ? TrendDown : overdueRatio > 0.1 ? Minus : TrendUp;
+  const cashflowColor = overdueRatio > 0.3 ? 'var(--color-danger)' : overdueRatio > 0.1 ? 'var(--color-warning)' : 'var(--color-success)';
 
   const scoreColor = score >= 80 ? 'var(--color-chart-emerald)' : score >= 50 ? 'var(--color-chart-amber)' : 'var(--color-chart-expense)';
   const scoreText = score >= 80 ? 'Excellent' : score >= 50 ? 'Fair' : 'Needs Attention';
@@ -83,8 +87,8 @@ export default function HealthScoreWidget() {
         <div className={styles.metric}>
           <div className={styles.metricLabel}>Cashflow</div>
           <div className={styles.metricValue}>
-            <TrendUp size={12} color="var(--color-chart-emerald)" />
-            Healthy
+            <CashflowIcon size={12} color={cashflowColor} />
+            {cashflowStatus}
           </div>
         </div>
         <div className={styles.metric}>

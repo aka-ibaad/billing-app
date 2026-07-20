@@ -1,0 +1,44 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: 0 var(--space-8) var(--space-12) var(--space-8);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: var(--text-page-title);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+}
+
+.widgetsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.aiInsightsSection {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1024px) {
+  .widgetsGrid {
+    grid-template-columns: 1fr;
+  }
+  .container {
+    padding: 0 var(--space-4) var(--space-8) var(--space-4);
+  }
+}

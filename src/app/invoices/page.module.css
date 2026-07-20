@@ -68,6 +68,8 @@
 /* Base double bezel card styling for widgets */
 .cardBase {
   background: var(--color-bg-secondary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
@@ -85,6 +87,8 @@
 .builderLeftPane, .builderRightPane {
   border-radius: var(--radius-xl);
   background: var(--color-bg-secondary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
@@ -162,6 +166,8 @@
   flex-direction: column;
   gap: var(--space-4);
   background: var(--color-bg-secondary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: var(--space-6);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
@@ -305,8 +311,10 @@
 /* Secondary Panel Buttons */
 .panelActions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-2);
   background: var(--color-bg-secondary);
   padding: 12px;
   border-radius: var(--radius-md);
@@ -316,6 +324,7 @@
 
 .panelBtnGroup {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
@@ -329,6 +338,7 @@
   cursor: pointer;
   transition: all 0.2s var(--ease-custom);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .toggleBtnActive {
@@ -350,6 +360,7 @@
   cursor: pointer;
   transition: all 0.2s var(--ease-custom);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .exportBtn:hover {
@@ -375,6 +386,8 @@
 
 .tableCard {
   background: var(--color-bg-secondary);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
@@ -450,7 +463,18 @@
 }
 
 /* Mobile Responsiveness */
+.widgetsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
 @media (max-width: 1024px) {
+  .widgetsRow {
+    grid-template-columns: 1fr;
+  }
+
   .header {
     flex-direction: column;
     align-items: flex-start;
@@ -513,27 +537,22 @@
   }
 }
 
+/* Live preview scaling: the document renders at its true size (800px A4 /
+   320px receipt) and JS measures the panel's real width to compute a scale
+   factor, applied as an inline transform (see previewScale in page.tsx).
+   This replaced a CSS container-query + cqw approach that could render the
+   scale/centering math incorrectly and clip the document. Centering the
+   scaled box is handled here with flexbox instead of transform math, since
+   transform-origin: top center keeps the visual scale centered even though
+   the box's layout width stays at its native size. */
 .previewWrapper {
   width: 100%;
-  container-type: inline-size;
   overflow: hidden;
-  /* A4 Aspect Ratio so container shrinks dynamically removing white space */
-  aspect-ratio: 1 / 1.414;
+  display: flex;
+  justify-content: center;
 }
 
 .previewScaler {
-  width: 800px;
-  transform-origin: top left;
-  /* Center horizontally when container is larger than 800px */
-  transform: translateX(calc((100cqw - 800px) / 2));
-  transition: transform 0.3s var(--ease-custom);
-}
-
-@container (max-width: 820px) {
-  .previewScaler {
-    /* Scale dynamically based on container width. No translation needed since it perfectly fills the width. */
-    transform: scale(calc(100cqw / 800));
-    /* Aspect ratio on the wrapper naturally handles the height! No negative margin needed! */
-    margin-bottom: 0;
-  }
+  transform-origin: top center;
+  flex-shrink: 0;
 }

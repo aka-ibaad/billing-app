@@ -109,17 +109,23 @@ type AppDataContextType = {
   notifications: AppNotification[];
   addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void;
   updateClient: (id: string, data: Partial<Client>) => void;
+  deleteClient: (id: string) => void;
   addInvoice: (invoice: Omit<Invoice, 'id'>) => void;
   updateInvoice: (id: string, data: Partial<Invoice>) => void;
+  deleteInvoice: (id: string) => void;
   updateOrderStatus: (id: string, status: Invoice['orderStatus']) => void;
   updateSettings: (data: Partial<Settings>) => void;
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, data: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   updateExpense: (id: string, data: Partial<Expense>) => void;
+  deleteExpense: (id: string) => void;
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
   seedMockData: () => void;
+  monthlyRevenueGoal: number;
+  setMonthlyRevenueGoal: (value: number) => void;
 };
 
 const defaultSettings: Settings = {
@@ -145,6 +151,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [monthlyRevenueGoal, setMonthlyRevenueGoalState] = useState<number>(1000000);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount
@@ -155,6 +162,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const storedProducts = localStorage.getItem('billing_products');
     const storedExpenses = localStorage.getItem('billing_expenses');
     const storedNotifications = localStorage.getItem('billing_notifications');
+    const storedGoal = localStorage.getItem('billing_monthly_goal');
 
     if (storedClients) setClients(JSON.parse(storedClients));
     if (storedInvoices) setInvoices(JSON.parse(storedInvoices));
@@ -162,6 +170,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (storedProducts) setProducts(JSON.parse(storedProducts));
     if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
     if (storedNotifications) setNotifications(JSON.parse(storedNotifications));
+    if (storedGoal) setMonthlyRevenueGoalState(JSON.parse(storedGoal));
     
     // Fallback mock data if empty
     if (!storedClients && !storedInvoices) {
@@ -265,8 +274,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('billing_products', JSON.stringify(products));
       localStorage.setItem('billing_expenses', JSON.stringify(expenses));
       localStorage.setItem('billing_notifications', JSON.stringify(notifications));
+      localStorage.setItem('billing_monthly_goal', JSON.stringify(monthlyRevenueGoal));
     }
-  }, [clients, invoices, settings, products, expenses, notifications, isLoaded]);
+  }, [clients, invoices, settings, products, expenses, notifications, monthlyRevenueGoal, isLoaded]);
 
   const addClient = (data: Omit<Client, 'id' | 'createdAt'>) => {
     setClients(prev => [...prev, { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() }]);
@@ -276,12 +286,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
   };
 
+  const deleteClient = (id: string) => {
+    setClients(prev => prev.filter(c => c.id !== id));
+  };
+
   const addInvoice = (data: Omit<Invoice, 'id'>) => {
     setInvoices(prev => [...prev, { ...data, id: Date.now().toString() }]);
   };
 
   const updateInvoice = (id: string, data: Partial<Invoice>) => {
     setInvoices(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
+  };
+
+  const deleteInvoice = (id: string) => {
+    setInvoices(prev => prev.filter(i => i.id !== id));
   };
 
   const updateOrderStatus = (id: string, status: Invoice['orderStatus']) => {
@@ -300,12 +318,24 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
   };
 
+  const deleteProduct = (id: string) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+  };
+
   const addExpense = (data: Omit<Expense, 'id'>) => {
     setExpenses(prev => [...prev, { ...data, id: Date.now().toString() }]);
   };
 
   const updateExpense = (id: string, data: Partial<Expense>) => {
     setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+  };
+
+  const deleteExpense = (id: string) => {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+  };
+
+  const setMonthlyRevenueGoal = (value: number) => {
+    setMonthlyRevenueGoalState(value);
   };
 
   const markNotificationRead = (id: string) => {
@@ -390,14 +420,45 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setNotifications(mockNotifications);
   };
 
-  if (!isLoaded) return null; // Prevent hydration mismatch
+  if (!isLoaded) {
+    // Lightweight skeleton shell instead of a blank flash while localStorage hydrates.
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        gap: '10px',
+      }}>
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: 'var(--color-accent, #2563eb)',
+          animation: 'app-loading-pulse 1s ease-in-out infinite',
+        }} />
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: 'var(--color-accent, #2563eb)',
+          animation: 'app-loading-pulse 1s ease-in-out 0.15s infinite',
+        }} />
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%',
+          background: 'var(--color-accent, #2563eb)',
+          animation: 'app-loading-pulse 1s ease-in-out 0.3s infinite',
+        }} />
+        <style>{`@keyframes app-loading-pulse { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }`}</style>
+      </div>
+    );
+  }
 
   return (
-    <AppDataContext.Provider value={{ 
+    <AppDataContext.Provider value={{
       clients, invoices, settings, products, expenses, notifications,
-      addClient, updateClient, addInvoice, updateInvoice, updateOrderStatus, updateSettings,
-      addProduct, updateProduct, addExpense, updateExpense, 
-      markNotificationRead, clearNotifications, seedMockData
+      addClient, updateClient, deleteClient,
+      addInvoice, updateInvoice, deleteInvoice, updateOrderStatus, updateSettings,
+      addProduct, updateProduct, deleteProduct,
+      addExpense, updateExpense, deleteExpense,
+      markNotificationRead, clearNotifications, seedMockData,
+      monthlyRevenueGoal, setMonthlyRevenueGoal,
     }}>
       {children}
     </AppDataContext.Provider>

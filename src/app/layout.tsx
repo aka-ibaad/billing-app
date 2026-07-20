@@ -6,7 +6,22 @@ import FloatingQuickCreate from '@/components/FloatingQuickCreate';
 import { AppDataProvider } from '@/context/AppDataContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import type { Metadata } from 'next';
+import { Plus_Jakarta_Sans, Space_Mono } from 'next/font/google';
 import './globals.css';
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans-loaded',
+  display: 'swap',
+});
+
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-mono-loaded',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Bespoke Billing',
@@ -19,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${plusJakartaSans.variable} ${spaceMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

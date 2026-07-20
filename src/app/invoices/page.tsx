@@ -7,24 +7,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 import { Plus, Trash, DownloadSimple, Image as ImageIcon } from '@phosphor-icons/react';
 import InvoicePreview from '@/components/InvoicePreview';
+import UpcomingDueCalendar from '@/components/dashboard/UpcomingDueCalendar';
+import { InvoiceStatusChart } from '@/components/dashboard/DetailedCharts';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 function InvoicesContent() {
-  const { invoices, clients, settings, products, addInvoice, updateOrderStatus } = useAppData();
+  const { invoices, clients, settings, products, addInvoice, updateOrderStatus, deleteInvoice } = useAppData();
   const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
+  const [formError, setFormError] = useState('');
   const previewRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (searchParams.get('create') === 'true') {
-      setIsCreating(true);
-    }
-  }, [searchParams]);
-
+  const previewWrapperRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [previewNativeHeight, setPreviewNativeHeight] = useState(0);
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortBy, setSortBy] = useState('date-desc');
-  
+
+  // Declared before the effects below — both reference `newInvoice`
+  // (one in its dependency array, which React evaluates synchronously
+  // during render), so it has to exist before they run or the component
+  // throws "Cannot access 'newInvoice' before initialization".
   const [newInvoice, setNewInvoice] = useState({
     clientId: '',
     number: `INV-2026-${String(invoices.length + 1).padStart(3, '0')}`,
@@ -44,6 +47,43 @@ function InvoicesContent() {
     expectedReadyTime: '',
     orderStatus: 'Pending' as const,
   });
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setIsCreating(true);
+    }
+    if (searchParams.get('format') === 'vertical') {
+      setNewInvoice(prev => ({ ...prev, format: 'vertical' }));
+    }
+  }, [searchParams]);
+
+  // Live preview scaling. The document is rendered at its true size (800px
+  // for A4, 320px for a thermal receipt) and then scaled down/up to fit
+  // whatever width the preview panel actually has. This used to rely on
+  // CSS container queries + cqw units, which didn't reliably scale or
+  // center the document (it was showing up clipped, with only the right
+  // half of the page visible). Measuring the real container width and the
+  // document's natural height in JS and applying the scale via an inline
+  // transform is far more robust and works the same for both formats.
+  useEffect(() => {
+    const wrapperEl = previewWrapperRef.current;
+    const contentEl = previewRef.current;
+    if (!wrapperEl || !contentEl) return;
+
+    const nativeWidth = newInvoice.format === 'vertical' ? 320 : 800;
+
+    const recalc = () => {
+      const w = wrapperEl.clientWidth;
+      if (w > 0) setPreviewScale(w / nativeWidth);
+      setPreviewNativeHeight(contentEl.scrollHeight);
+    };
+
+    recalc();
+    const ro = new ResizeObserver(recalc);
+    ro.observe(wrapperEl);
+    ro.observe(contentEl);
+    return () => ro.disconnect();
+  }, [newInvoice.format]);
 
   const handleAddItem = () => {
     setNewInvoice({
@@ -105,9 +145,17 @@ function InvoicesContent() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newInvoice.clientId) return;
-    
+    if (!newInvoice.clientId) {
+      setFormError('Please select a client before saving.');
+      return;
+    }
+    if (newInvoice.items.some(i => !i.description.trim())) {
+      setFormError('Every line item needs a description.');
+      return;
+    }
+
     addInvoice(newInvoice);
+    setFormError('');
     setIsCreating(false);
     // Reset form
     setNewInvoice({
@@ -129,6 +177,28 @@ function InvoicesContent() {
       expectedReadyTime: '',
       orderStatus: 'Pending',
     });
+  };
+
+  const isBuilderDirty = () => {
+    return (
+      newInvoice.clientId !== '' ||
+      newInvoice.notes.trim() !== '' ||
+      newInvoice.items.some(i => i.description.trim() !== '' || i.rate !== 0)
+    );
+  };
+
+  const handleCancelBuilder = () => {
+    if (isBuilderDirty() && !window.confirm('Discard this invoice? Everything you entered will be lost.')) {
+      return;
+    }
+    setFormError('');
+    setIsCreating(false);
+  };
+
+  const handleDeleteInvoice = (id: string, number: string) => {
+    if (window.confirm(`Delete invoice ${number}? This cannot be undone.`)) {
+      deleteInvoice(id);
+    }
   };
 
   const exportPDF = async () => {
@@ -327,9 +397,10 @@ function InvoicesContent() {
                       <span className="mono-text">
                         ₨ {(item.quantity * item.rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </span>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className={styles.iconButton}
+                        aria-label="Remove line item"
                         onClick={() => handleRemoveItem(item.id)}
                         disabled={newInvoice.items.length === 1}
                       >
@@ -420,8 +491,11 @@ function InvoicesContent() {
                     </div>
                   </div>
                   
+                  {formError && (
+                    <p role="alert" style={{ color: 'var(--color-danger)', fontSize: '13px', marginBottom: '12px' }}>{formError}</p>
+                  )}
                   <div className={styles.formActions}>
-                    <button type="button" className={styles.cancelButton} onClick={() => setIsCreating(false)}>Cancel</button>
+                    <button type="button" className={styles.cancelButton} onClick={handleCancelBuilder}>Cancel</button>
                     <button type="submit" className={styles.submitButton}>Save Draft</button>
                   </div>
                 </div>
@@ -453,10 +527,20 @@ function InvoicesContent() {
                   </div>
                 </div>
 
-                <div className={styles.previewWrapper}>
-                  <div className={styles.previewScaler}>
+                <div
+                  className={styles.previewWrapper}
+                  ref={previewWrapperRef}
+                  style={previewNativeHeight ? { height: previewNativeHeight * previewScale } : undefined}
+                >
+                  <div
+                    className={styles.previewScaler}
+                    style={{
+                      width: newInvoice.format === 'vertical' ? 320 : 800,
+                      transform: `scale(${previewScale})`,
+                    }}
+                  >
                     <div ref={previewRef}>
-                      <InvoicePreview 
+                      <InvoicePreview
                         invoice={newInvoice}
                         client={clients.find(c => c.id === newInvoice.clientId)}
                         settings={settings}
@@ -471,10 +555,15 @@ function InvoicesContent() {
         )}
       </AnimatePresence>
 
+      <div className={styles.widgetsRow}>
+        <UpcomingDueCalendar />
+        <InvoiceStatusChart invoices={invoices} expenses={[]} clients={clients} products={products} filter="30D" compact />
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <select 
-            className={styles.input} 
+          <select
+            className={styles.input}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             style={{ width: '160px' }}
@@ -517,6 +606,7 @@ function InvoicesContent() {
                   <th>Payment Status</th>
                   <th>Order Status</th>
                   <th className={styles.textRight}>Amount</th>
+                  <th className={styles.textRight}>Actions</th>
                 </tr>
               </thead>
               <tbody className="mono-text">
@@ -579,12 +669,22 @@ function InvoicesContent() {
                     </div>
                   </td>
                   <td className={styles.textRight}>₨ {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td className={styles.textRight}>
+                    <button
+                      type="button"
+                      className={styles.iconButton}
+                      aria-label={`Delete invoice ${inv.number}`}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(inv.id, inv.number); }}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </td>
                 </tr>
               );
             })}
             {invoices.length === 0 && (
               <tr>
-                <td colSpan={5} className={styles.emptyState}>No invoices found</td>
+                <td colSpan={6} className={styles.emptyState}>No invoices found</td>
               </tr>
             )}
           </tbody>

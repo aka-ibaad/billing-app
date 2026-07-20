@@ -65,7 +65,7 @@ export default function NotificationCenter() {
                       Clear all
                     </button>
                   )}
-                  <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>
+                  <button className={styles.closeBtn} onClick={() => setIsOpen(false)} aria-label="Close notifications">
                     <X size={20} />
                   </button>
                 </div>

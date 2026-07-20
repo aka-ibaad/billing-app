@@ -4,10 +4,15 @@ import React, { useState, useMemo } from 'react';
 import { useAppData } from '@/context/AppDataContext';
 import { Printer, Receipt, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
+import {
+  RevenueExpenseChart, MonthlyRevenueChart, PaymentMethodsChart,
+  DailySalesChart, IncomeProfitChart
+} from '@/components/dashboard/DetailedCharts';
+import dashboardStyles from '@/app/page.module.css';
 import styles from './page.module.css';
 
 export default function RecordsPage() {
-  const { invoices, clients } = useAppData();
+  const { invoices, clients, expenses, products } = useAppData();
   const [dateRange, setDateRange] = useState('month');
 
   const filteredInvoices = useMemo(() => {
@@ -98,6 +103,14 @@ export default function RecordsPage() {
           <span className={styles.cardLabel}>Invoices</span>
           <span className={styles.cardValue}>{filteredInvoices.length}</span>
         </div>
+      </div>
+
+      <div className={dashboardStyles.detailedChartsGrid} style={{ marginTop: 'var(--space-2)' }}>
+        <RevenueExpenseChart invoices={invoices} expenses={expenses} clients={clients} products={products} filter="30D" />
+        <MonthlyRevenueChart invoices={invoices} expenses={expenses} clients={clients} products={products} filter="30D" />
+        <PaymentMethodsChart invoices={invoices} expenses={expenses} clients={clients} products={products} filter="30D" />
+        <DailySalesChart invoices={invoices} expenses={expenses} clients={clients} products={products} filter="30D" />
+        <IncomeProfitChart invoices={invoices} expenses={expenses} clients={clients} products={products} filter="30D" />
       </div>
 
       <div className={styles.tableWrapper}>

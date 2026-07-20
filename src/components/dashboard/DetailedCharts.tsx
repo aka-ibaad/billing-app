@@ -12,7 +12,22 @@ interface ChartProps {
   clients: any[];
   products: any[];
   filter: '7D' | '30D' | '12M';
+  compact?: boolean;
 }
+
+// Invoices coming straight from context never carry a pre-computed `calculatedTotal` —
+// that field only exists where a page manually maps it in. Compute it here so every
+// chart works regardless of where its invoices come from.
+const getInvoiceTotal = (inv: any) => {
+  const subtotal = (inv.items || []).reduce((s: number, item: any) => s + (item.quantity * item.rate), 0);
+  const discountAmount = inv.discount?.type === 'percentage'
+    ? subtotal * ((inv.discount?.value || 0) / 100)
+    : (inv.discount?.value || 0);
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
+  let totalTax = 0;
+  inv.taxes?.forEach((tax: any) => { totalTax += afterDiscount * (tax.rate / 100); });
+  return afterDiscount + totalTax;
+};
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -31,7 +46,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 // 1. Revenue vs Expenses
-export const RevenueExpenseChart = ({ invoices, expenses, filter }: ChartProps) => {
+export const RevenueExpenseChart = ({ invoices, expenses, filter, compact }: ChartProps) => {
   const data = useMemo(() => {
     // Basic computation mirroring existing logic but scoped
     const res: any[] = [];
@@ -54,7 +69,7 @@ export const RevenueExpenseChart = ({ invoices, expenses, filter }: ChartProps) 
     invoices.forEach(inv => {
       if (inv.documentType === 'quotation') return;
       const d = new Date(inv.issueDate);
-      const paid = inv.status === 'Paid' ? inv.calculatedTotal : (inv.advanceAmountPaid || 0);
+      const paid = inv.status === 'Paid' ? getInvoiceTotal(inv) : (inv.advanceAmountPaid || 0);
       if(filter === '7D') {
         const match = res.find(x => x.dateStr === d.toISOString().split('T')[0]);
         if(match) match.Revenue += paid;
@@ -90,9 +105,9 @@ export const RevenueExpenseChart = ({ invoices, expenses, filter }: ChartProps) 
   }, [invoices, expenses, filter]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>Revenue vs Expenses</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>Revenue vs Expenses</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <defs>
@@ -119,7 +134,7 @@ export const RevenueExpenseChart = ({ invoices, expenses, filter }: ChartProps) 
 };
 
 // 2. Monthly Revenue (Bar)
-export const MonthlyRevenueChart = ({ invoices }: ChartProps) => {
+export const MonthlyRevenueChart = ({ invoices, compact }: ChartProps) => {
   const data = useMemo(() => {
     const res: any[] = [];
     const now = new Date();
@@ -131,15 +146,15 @@ export const MonthlyRevenueChart = ({ invoices }: ChartProps) => {
       if (inv.documentType === 'quotation') return;
       const d = new Date(inv.issueDate);
       const match = res.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
-      if(match) match.Revenue += inv.calculatedTotal || 0;
+      if(match) match.Revenue += getInvoiceTotal(inv);
     });
     return res;
   }, [invoices]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>6-Month Revenue</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>6-Month Revenue</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
@@ -155,7 +170,7 @@ export const MonthlyRevenueChart = ({ invoices }: ChartProps) => {
 };
 
 // 3. Invoice Status (Donut)
-export const InvoiceStatusChart = ({ invoices }: ChartProps) => {
+export const InvoiceStatusChart = ({ invoices, compact }: ChartProps) => {
   const data = useMemo(() => {
     const valid = invoices.filter(i => i.documentType !== 'quotation');
     return [
@@ -167,12 +182,12 @@ export const InvoiceStatusChart = ({ invoices }: ChartProps) => {
   }, [invoices]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>Invoice Status</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>Invoice Status</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={data} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+            <Pie data={data} innerRadius={compact ? 40 : 60} outerRadius={compact ? 60 : 80} paddingAngle={5} dataKey="value">
               {data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
             </Pie>
             <RechartsTooltip content={<CustomTooltip />} />
@@ -185,14 +200,14 @@ export const InvoiceStatusChart = ({ invoices }: ChartProps) => {
 };
 
 // 4. Payment Methods (Pie)
-export const PaymentMethodsChart = ({ invoices }: ChartProps) => {
+export const PaymentMethodsChart = ({ invoices, compact }: ChartProps) => {
   const data = useMemo(() => {
     // Mocking or extracting payment method
     let bank = 0, cash = 0, card = 0, wallet = 0;
     invoices.forEach(inv => {
       if (inv.status !== 'Paid') return;
       // In a real app we'd check inv.paymentMethod. Mocking based on amount for visual variety.
-      const total = inv.calculatedTotal || 0;
+      const total = getInvoiceTotal(inv);
       if (total % 4 === 0) cash += total;
       else if (total % 3 === 0) card += total;
       else if (total % 2 === 0) wallet += total;
@@ -207,9 +222,9 @@ export const PaymentMethodsChart = ({ invoices }: ChartProps) => {
   }, [invoices]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>Payment Methods</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>Payment Methods</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie data={data} outerRadius={80} dataKey="value">
@@ -224,7 +239,7 @@ export const PaymentMethodsChart = ({ invoices }: ChartProps) => {
 };
 
 // 5. Daily Sales (Line)
-export const DailySalesChart = ({ invoices }: ChartProps) => {
+export const DailySalesChart = ({ invoices, compact }: ChartProps) => {
   const data = useMemo(() => {
     const res: any[] = [];
     const now = new Date();
@@ -236,15 +251,15 @@ export const DailySalesChart = ({ invoices }: ChartProps) => {
       if (inv.documentType === 'quotation') return;
       const d = new Date(inv.issueDate);
       const match = res.find(x => x.dateStr === d.toISOString().split('T')[0]);
-      if(match) match.Sales += inv.calculatedTotal || 0;
+      if(match) match.Sales += getInvoiceTotal(inv);
     });
     return res;
   }, [invoices]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>Daily Sales (14 Days)</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>Daily Sales (14 Days)</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
@@ -260,12 +275,12 @@ export const DailySalesChart = ({ invoices }: ChartProps) => {
 };
 
 // 6. Top Clients (Bar)
-export const TopClientsChart = ({ invoices, clients }: ChartProps) => {
+export const TopClientsChart = ({ invoices, clients, compact }: ChartProps) => {
   const data = useMemo(() => {
     const map: Record<string, number> = {};
     invoices.forEach(inv => {
       if (inv.documentType === 'quotation') return;
-      map[inv.clientId] = (map[inv.clientId] || 0) + (inv.calculatedTotal || 0);
+      map[inv.clientId] = (map[inv.clientId] || 0) + getInvoiceTotal(inv);
     });
     return Object.entries(map)
       .map(([id, Revenue]) => {
@@ -277,16 +292,16 @@ export const TopClientsChart = ({ invoices, clients }: ChartProps) => {
   }, [invoices, clients]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>Top Clients</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>Top Clients</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 10, right: 20, left: 20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border-subtle)" />
             <XAxis type="number" hide />
             <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-primary)', fontSize: 12 }} width={80} />
             <RechartsTooltip content={<CustomTooltip />} />
-            <Bar dataKey="Revenue" fill="var(--color-chart-blue)" radius={[0, 4, 4, 0]} barSize={24} />
+            <Bar dataKey="Revenue" fill="var(--color-chart-blue)" radius={[0, 4, 4, 0]} barSize={compact ? 18 : 24} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -295,7 +310,7 @@ export const TopClientsChart = ({ invoices, clients }: ChartProps) => {
 };
 
 // 7. Top Products (Bar)
-export const TopProductsChart = ({ invoices }: ChartProps) => {
+export const TopProductsChart = ({ invoices, compact }: ChartProps) => {
   const data = useMemo(() => {
     const map: Record<string, number> = {};
     invoices.forEach(inv => {
@@ -312,16 +327,16 @@ export const TopProductsChart = ({ invoices }: ChartProps) => {
   }, [invoices]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>Top Products</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>Top Products</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 10, right: 20, left: 20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border-subtle)" />
             <XAxis type="number" hide />
             <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-primary)', fontSize: 12 }} width={100} />
             <RechartsTooltip content={<CustomTooltip />} />
-            <Bar dataKey="Sales" fill="var(--color-chart-amber)" radius={[0, 4, 4, 0]} barSize={24} />
+            <Bar dataKey="Sales" fill="var(--color-chart-amber)" radius={[0, 4, 4, 0]} barSize={compact ? 18 : 24} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -330,7 +345,7 @@ export const TopProductsChart = ({ invoices }: ChartProps) => {
 };
 
 // 8. Income vs Profit (Composed)
-export const IncomeProfitChart = ({ invoices, expenses, filter }: ChartProps) => {
+export const IncomeProfitChart = ({ invoices, expenses, filter, compact }: ChartProps) => {
   const data = useMemo(() => {
     const res: any[] = [];
     const now = new Date();
@@ -342,7 +357,7 @@ export const IncomeProfitChart = ({ invoices, expenses, filter }: ChartProps) =>
       if (inv.documentType === 'quotation') return;
       const d = new Date(inv.issueDate);
       const match = res.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
-      if(match) match.Income += inv.calculatedTotal || 0;
+      if(match) match.Income += getInvoiceTotal(inv);
     });
     expenses.filter(e => e.status === 'Paid').forEach(exp => {
       const d = new Date(exp.date);
@@ -356,9 +371,9 @@ export const IncomeProfitChart = ({ invoices, expenses, filter }: ChartProps) =>
   }, [invoices, expenses]);
 
   return (
-    <div className={styles.chartCard}>
-      <h2 className={styles.sectionTitle}>Income vs Profit</h2>
-      <div className={styles.chartContainer}>
+    <div className={styles.chartCard} style={compact ? { padding: '20px' } : undefined}>
+      <h2 className={styles.sectionTitle} style={compact ? { fontSize: '14px', marginBottom: '4px' } : undefined}>Income vs Profit</h2>
+      <div className={styles.chartContainer} style={compact ? { height: 180 } : undefined}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />

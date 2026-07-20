@@ -32,6 +32,7 @@ export default function SettingsPage() {
   });
 
   const [saved, setSaved] = useState(false);
+  const [uploadError, setUploadError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const letterheadInputRef = useRef<HTMLInputElement>(null);
@@ -70,9 +71,10 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1024 * 1024) {
-        alert("File size exceeds 1MB limit");
+        setUploadError('Logo file is too large. Please choose an image under 1MB.');
         return;
       }
+      setUploadError('');
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, logoUrl: reader.result as string }));
@@ -85,9 +87,10 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1024 * 1024) {
-        alert("File size exceeds 1MB limit");
+        setUploadError(`${field === 'signatureUrl' ? 'Signature' : 'Letterhead'} file is too large. Please choose an image under 1MB.`);
         return;
       }
+      setUploadError('');
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, [field]: reader.result as string }));
@@ -126,7 +129,7 @@ export default function SettingsPage() {
       <div className={styles.content}>
         
         {/* Appearance Section */}
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.sectionFull}`}>
           <h2 className={styles.sectionTitle}>Appearance</h2>
           <p className={styles.sectionDesc}>Customize the theme and interface behavior.</p>
 
@@ -135,6 +138,7 @@ export default function SettingsPage() {
               type="button"
               className={`${styles.themeCard} ${styles.themeCardLight} ${theme === 'light' ? styles.active : ''}`}
               onClick={() => setTheme('light')}
+              aria-pressed={theme === 'light'}
             >
               <div className={styles.themeIconWrapper}>
                 <Sun size={24} weight={theme === 'light' ? 'fill' : 'regular'} />
@@ -149,6 +153,7 @@ export default function SettingsPage() {
               type="button"
               className={`${styles.themeCard} ${styles.themeCardDark} ${theme === 'dark' ? styles.active : ''}`}
               onClick={() => setTheme('dark')}
+              aria-pressed={theme === 'dark'}
             >
               <div className={styles.themeIconWrapper}>
                 <Moon size={24} weight={theme === 'dark' ? 'fill' : 'regular'} />
@@ -163,6 +168,7 @@ export default function SettingsPage() {
               type="button"
               className={`${styles.themeCard} ${styles.themeCardSystem} ${theme === 'system' ? styles.active : ''}`}
               onClick={() => setTheme('system')}
+              aria-pressed={theme === 'system'}
             >
               <div className={styles.themeIconWrapper}>
                 <Monitor size={24} weight={theme === 'system' ? 'fill' : 'regular'} />
@@ -176,6 +182,9 @@ export default function SettingsPage() {
         </section>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          {uploadError && (
+            <p role="alert" className={styles.sectionFull} style={{ color: 'var(--color-danger)', fontSize: '13px', margin: 0 }}>{uploadError}</p>
+          )}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Business Details</h2>
             <p className={styles.sectionDesc}>This information will appear on your generated invoices.</p>
@@ -428,6 +437,8 @@ export default function SettingsPage() {
           </section>
 
           <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Document Text</h2>
+            <p className={styles.sectionDesc}>Custom header and footer copy shown on generated invoices.</p>
             <div className={styles.formGroup}>
               <label>Custom Header Text</label>
               <input 
@@ -506,7 +517,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <div className={styles.formActions}>
+          <div className={`${styles.formActions} ${styles.sectionFull}`}>
             <button type="submit" className={styles.submitButton}>
               {saved ? 'Saved Successfully' : 'Save All Settings'}
             </button>
