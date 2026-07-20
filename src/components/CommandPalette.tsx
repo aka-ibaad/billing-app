@@ -45,7 +45,7 @@ export default function CommandPalette() {
       // Quick Create Invoice (Ctrl+N or Cmd+N)
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
-        router.push('/invoices/new');
+        router.push('/invoices?create=true');
         setIsOpen(false);
       }
     };
@@ -112,7 +112,7 @@ export default function CommandPalette() {
     {
       title: 'Quick Actions',
       items: [
-        { id: 'create-invoice', icon: Plus, title: 'Create new Invoice', shortcut: '⌘N', onSelect: () => closeAndRun(() => router.push('/invoices/new')) },
+        { id: 'create-invoice', icon: Plus, title: 'Create new Invoice', shortcut: '⌘N', onSelect: () => closeAndRun(() => router.push('/invoices?create=true')) },
         { id: 'create-client', icon: Plus, title: 'Add new Client', onSelect: () => closeAndRun(() => router.push('/clients/new')) },
         { id: 'record-expense', icon: Plus, title: 'Record Expense', onSelect: () => closeAndRun(() => router.push('/expenses/new')) },
       ],

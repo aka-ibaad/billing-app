@@ -457,6 +457,13 @@
   color: var(--color-text-muted);
 }
 
+.detailedChartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
 @media (max-width: 1100px) {
   .summaryGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -467,7 +474,7 @@
   .widgetsGridSplit {
     grid-template-columns: 1fr;
   }
-  .chartsRow, .bottomRow {
+  .chartsRow, .bottomRow, .detailedChartsGrid {
     grid-template-columns: 1fr;
   }
   .actionsGrid {

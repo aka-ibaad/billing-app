@@ -11,6 +11,10 @@ import UpcomingDueCalendar from '@/components/dashboard/UpcomingDueCalendar';
 import RevenueGoalWidget from '@/components/dashboard/RevenueGoalWidget';
 import RecentPaymentsWidget from '@/components/dashboard/RecentPaymentsWidget';
 import { 
+  RevenueExpenseChart, MonthlyRevenueChart, InvoiceStatusChart, PaymentMethodsChart,
+  DailySalesChart, TopClientsChart, TopProductsChart, IncomeProfitChart 
+} from '@/components/dashboard/DetailedCharts';
+import { 
   Wallet, WarningCircle, CheckCircle, Clock, TrendUp, TrendDown,
   Plus, Users, ChartLineUp, Receipt, FileText, ArrowRight,
   ArrowUpRight, ArrowDownRight, CalendarBlank, Sparkle, Truck
@@ -372,64 +376,42 @@ export default function Dashboard() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}><RevenueGoalWidget /></motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}><UpcomingDueCalendar /></motion.div>
       </div>
-
       <div className={styles.widgetsGridSplit}>
         <motion.div className={styles.aiInsightsWrap} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}><AIInsightsWidget /></motion.div>
         <motion.div className={styles.recentPaymentsWrap} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}><RecentPaymentsWidget /></motion.div>
       </div>
 
-      <div className={styles.chartsRow}>
-        <motion.div className={styles.chartCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
-          <h2 className={styles.sectionTitle}>Income vs Expenses</h2>
-          <div className={styles.chartContainer}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mainChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-chart-blue)" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="var(--color-chart-blue)" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-chart-expense)" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="var(--color-chart-expense)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₨${val/1000}k`} />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--color-bg-sidebar)', backdropFilter: 'blur(10px)', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}
-                  itemStyle={{ color: 'var(--color-text-primary)' }}
-                />
-                <Area type="monotone" dataKey="Revenue" stroke="var(--color-chart-blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                <Area type="monotone" dataKey="Expenses" stroke="var(--color-chart-expense)" strokeWidth={3} fillOpacity={1} fill="url(#colorExpenses)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+      <div className={styles.detailedChartsGrid}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
+          <RevenueExpenseChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
         </motion.div>
-
-        <motion.div className={styles.chartCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
-          <h2 className={styles.sectionTitle}>Invoice Status</h2>
-          <div className={styles.chartContainer} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} innerRadius={80} outerRadius={110} paddingAngle={4} dataKey="value" stroke="none">
-                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--color-bg-sidebar)', backdropFilter: 'blur(10px)', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}
-                  itemStyle={{ color: 'var(--color-text-primary)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
+          <MonthlyRevenueChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
+          <InvoiceStatusChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
+          <PaymentMethodsChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.9 }}>
+          <DailySalesChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.0 }}>
+          <TopClientsChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.1 }}>
+          <TopProductsChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 1.2 }}>
+          <IncomeProfitChart invoices={validInvoices} expenses={expenses} filter={filter} clients={clients} products={products} />
         </motion.div>
       </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
         <h2 className={styles.sectionTitle}>Quick Actions</h2>
         <div className={styles.actionsGrid}>
-          <Link href="/invoices/new" className={styles.actionCard}>
+          <Link href="/invoices?create=true" className={styles.actionCard}>
             <FileText size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-blue)" />
             <span className={styles.actionLabel}>New Invoice</span>
           </Link>

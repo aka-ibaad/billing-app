@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAppData, Tax } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
@@ -9,10 +10,17 @@ import InvoicePreview from '@/components/InvoicePreview';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-export default function InvoicesPage() {
+function InvoicesContent() {
   const { invoices, clients, settings, products, addInvoice, updateOrderStatus } = useAppData();
+  const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setIsCreating(true);
+    }
+  }, [searchParams]);
 
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortBy, setSortBy] = useState('date-desc');
@@ -585,5 +593,13 @@ export default function InvoicesPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function InvoicesPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '24px' }}>Loading...</div>}>
+      <InvoicesContent />
+    </Suspense>
   );
 }

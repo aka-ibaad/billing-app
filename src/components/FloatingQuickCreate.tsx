@@ -26,8 +26,8 @@ export default function FloatingQuickCreate() {
   }, [isOpen]);
 
   const actions = [
-    { id: 'invoice', label: 'Invoice', icon: FileText, onClick: () => router.push('/invoices/new') },
-    { id: 'receipt', label: 'Receipt', icon: Receipt, onClick: () => router.push('/invoices/new') },
+    { id: 'invoice', label: 'Invoice', icon: FileText, onClick: () => router.push('/invoices?create=true') },
+    { id: 'receipt', label: 'Receipt', icon: Receipt, onClick: () => router.push('/invoices?create=true') },
     { id: 'client', label: 'Client', icon: Users, onClick: () => router.push('/clients/new') },
     { id: 'product', label: 'Product', icon: ChartLineUp, onClick: () => router.push('/products/new') },
     { id: 'expense', label: 'Expense', icon: FilePlus, onClick: () => router.push('/expenses/new') },

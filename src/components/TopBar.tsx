@@ -109,7 +109,7 @@ export default function TopBar() {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
               >
-                <div className={styles.dropdownItem} onClick={() => { router.push('/invoices/new'); setIsCreateOpen(false); }}>
+                <div className={styles.dropdownItem} onClick={() => { router.push('/invoices?create=true'); setIsCreateOpen(false); }}>
                   <FileText size={16} /> New Invoice
                 </div>
                 <div className={styles.dropdownItem} onClick={() => { router.push('/clients/new'); setIsCreateOpen(false); }}>
