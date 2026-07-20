@@ -15,7 +15,12 @@
   font-size: var(--text-3xl);
   font-weight: 300;
   letter-spacing: -0.02em;
-  color: var(--color-pure-black);
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
 }
 
 .controls {
@@ -27,8 +32,8 @@
 .input {
   padding: 10px 14px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
   font-size: var(--text-sm);
   color: var(--color-text-primary);
   transition: all 0.2s var(--ease-custom);
@@ -36,17 +41,17 @@
 }
 
 .input:focus {
-  border-color: var(--color-pure-black);
+  border-color: var(--color-accent);
 }
 
 .primaryButton {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--color-pure-black);
-  color: white;
-  border: none;
-  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 10px 20px;
   font-size: var(--text-sm);
   font-weight: 500;
@@ -56,6 +61,8 @@
 
 .primaryButton:hover {
   background-color: var(--color-accent);
+  color: var(--color-crisp-white);
+  border-color: var(--color-accent);
 }
 
 .summaryCards {
@@ -66,13 +73,23 @@
 }
 
 .card {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s var(--ease-custom);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 16px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-border-strong);
 }
 
 .cardLabel {
@@ -86,14 +103,15 @@
 .cardValue {
   font-size: var(--text-3xl);
   font-weight: 500;
-  color: var(--color-pure-black);
+  color: var(--color-text-primary);
 }
 
 .tableWrapper {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   overflow-x: auto;
+  box-shadow: var(--shadow-sm);
 }
 
 .table {
@@ -108,20 +126,22 @@
 }
 
 .table th {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-tertiary);
 }
 
 .tableRow {
   transition: background-color 0.2s;
+  color: var(--color-text-secondary);
 }
 
 .tableRow:hover {
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
 }
 
 .textRight {
@@ -129,10 +149,87 @@
 }
 
 .emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
   text-align: center;
-  padding: 48px;
+}
+
+.emptyIconWrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 40px;
+  background: var(--color-bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border);
+}
+
+.emptyStateText {
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  font-style: italic;
+  margin-bottom: var(--space-4);
+}
+
+.emptyStateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #1d4ed8 100%);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  transition: all 0.2s var(--ease-custom);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.emptyStateButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.paid {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-chart-emerald);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.pending {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-chart-amber);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.overdue {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-chart-expense);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.draft {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
 }
 
 @media print {

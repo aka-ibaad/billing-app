@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useAppData } from '@/context/AppDataContext';
-import { Printer } from '@phosphor-icons/react';
+import { Printer, Receipt, Plus } from '@phosphor-icons/react';
+import Link from 'next/link';
 import styles from './page.module.css';
 
 export default function RecordsPage() {
@@ -57,7 +58,7 @@ export default function RecordsPage() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Financial Records</h1>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: '8px' }}>
+          <p className={styles.subtitle}>
             Aggregated report of billing activity.
           </p>
         </div>
@@ -113,7 +114,18 @@ export default function RecordsPage() {
           <tbody className="mono-text">
             {filteredInvoices.length === 0 ? (
               <tr>
-                <td colSpan={5} className={styles.emptyState}>No records found for this period.</td>
+                <td colSpan={5}>
+                  <div className={styles.emptyState}>
+                    <div className={styles.emptyIconWrapper}>
+                      <Receipt size={48} weight="duotone" />
+                    </div>
+                    <p className={styles.emptyStateText}>No financial records found for this period.</p>
+                    <Link href="/invoices/new" className={styles.emptyStateButton}>
+                      <Plus size={16} />
+                      Create Your First Invoice
+                    </Link>
+                  </div>
+                </td>
               </tr>
             ) : (
               filteredInvoices.map(inv => {
@@ -123,7 +135,11 @@ export default function RecordsPage() {
                     <td>{inv.issueDate}</td>
                     <td>{inv.number}</td>
                     <td className="sans-text">{client?.name || 'Unknown'}</td>
-                    <td>{inv.status}</td>
+                    <td>
+                      <span className={`${styles.statusBadge} ${styles[inv.status.toLowerCase()] || ''}`}>
+                        {inv.status}
+                      </span>
+                    </td>
                     <td className={styles.textRight}>₨ {inv.calculatedTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                   </tr>
                 );
