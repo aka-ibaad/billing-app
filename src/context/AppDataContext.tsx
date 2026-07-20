@@ -61,6 +61,13 @@ export type Settings = {
   signatureUrl?: string;
   watermarkText?: string;
   letterheadUrl?: string;
+  enableWatermark?: boolean;
+  watermarkOpacity?: number;
+  watermarkSize?: 'Small' | 'Medium' | 'Large' | 'Full Page';
+  watermarkPosition?: 'Center' | 'Top Center' | 'Bottom Center' | 'Custom';
+  watermarkCustomX?: number;
+  watermarkCustomY?: number;
+  watermarkRotation?: number;
 };
 
 export type Product = {
@@ -100,8 +107,15 @@ type AppDataContextType = {
 const defaultSettings: Settings = {
   businessName: 'Acme Corp',
   businessAddress: '123 Business Rd, Tech City, TC 10101',
-  businessEmail: 'hello@acme.corp',
+  businessEmail: 'hello@sparx.com',
   defaultTaxes: [],
+  enableWatermark: false,
+  watermarkOpacity: 5,
+  watermarkSize: 'Large',
+  watermarkPosition: 'Center',
+  watermarkCustomX: 50,
+  watermarkCustomY: 50,
+  watermarkRotation: 0,
 };
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -130,17 +144,21 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     
     // Fallback mock data if empty
     if (!storedClients && !storedInvoices) {
+      const now = new Date();
+      const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+
       setClients([
         { id: '1', name: 'Globex Inc', email: 'billing@globex.com', address: '100 Globe Way', createdAt: new Date().toISOString() },
         { id: '2', name: 'Soylent Corp', email: 'accounts@soylent.com', address: '200 Soy St', createdAt: new Date().toISOString() }
       ]);
       setInvoices([
         {
-          id: '1', clientId: '1', number: 'INV-2026-040', issueDate: '2026-10-01', dueDate: '2026-10-15',
+          id: '1', clientId: '1', number: 'INV-2026-040', issueDate: tenDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
           items: [{ id: 'i1', description: 'Web Design', quantity: 1, rate: 1200 }], status: 'Paid', notes: ''
         },
         {
-          id: '2', clientId: '2', number: 'INV-2026-039', issueDate: '2026-09-15', dueDate: '2026-09-30',
+          id: '2', clientId: '2', number: 'INV-2026-039', issueDate: twoDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
           items: [{ id: 'i2', description: 'Consulting', quantity: 40, rate: 210 }], status: 'Overdue', notes: ''
         }
       ]);

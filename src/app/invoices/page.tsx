@@ -161,8 +161,9 @@ export default function InvoicesPage() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className={styles.builderLeftPane}>
-              <form onSubmit={handleCreate} className={styles.builderForm}>
-                <div className={styles.builderHeader}>
+              <div className={styles.builderForm}>
+                <form onSubmit={handleCreate}>
+                  <div className={styles.builderHeader}>
                   <div className={styles.formGroup}>
                     <label>Client</label>
                     <select 
@@ -391,41 +392,45 @@ export default function InvoicesPage() {
                     <button type="submit" className={styles.submitButton}>Save Draft</button>
                   </div>
                 </div>
-              </form>
-            </div>
-            
-            <div className={styles.builderRightPane}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', background: 'var(--color-bg-secondary)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setNewInvoice({...newInvoice, format: 'horizontal'})}
-                    style={{ padding: '8px 16px', background: newInvoice.format === 'horizontal' ? 'var(--color-pure-black)' : 'transparent', color: newInvoice.format === 'horizontal' ? 'white' : 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer' }}
-                  >A4 Bill</button>
-                  <button 
-                    type="button"
-                    onClick={() => setNewInvoice({...newInvoice, format: 'vertical'})}
-                    style={{ padding: '8px 16px', background: newInvoice.format === 'vertical' ? 'var(--color-pure-black)' : 'transparent', color: newInvoice.format === 'vertical' ? 'white' : 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer' }}
-                  >Receipt</button>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button type="button" onClick={exportImage} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer' }}>
-                    <ImageIcon /> Image
-                  </button>
-                  <button type="button" onClick={exportPDF} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                    <DownloadSimple /> PDF
-                  </button>
-                </div>
+                </form>
               </div>
+            </div>
+            <div className={styles.builderRightPane}>
+              <div className={styles.builderRightPaneInner}>
+                <div className={styles.panelActions}>
+                  <div className={styles.panelBtnGroup}>
+                    <button 
+                      type="button" 
+                      onClick={() => setNewInvoice({...newInvoice, format: 'horizontal'})}
+                      className={`${styles.toggleBtn} ${newInvoice.format === 'horizontal' ? styles.toggleBtnActive : ''}`}
+                    >A4 Bill</button>
+                    <button 
+                      type="button"
+                      onClick={() => setNewInvoice({...newInvoice, format: 'vertical'})}
+                      className={`${styles.toggleBtn} ${newInvoice.format === 'vertical' ? styles.toggleBtnActive : ''}`}
+                    >Receipt</button>
+                  </div>
+                  <div className={styles.panelBtnGroup}>
+                    <button type="button" onClick={exportImage} className={styles.exportBtn}>
+                      <ImageIcon /> Image
+                    </button>
+                    <button type="button" onClick={exportPDF} className={`${styles.exportBtn} ${styles.exportBtnPrimary}`}>
+                      <DownloadSimple /> PDF
+                    </button>
+                  </div>
+                </div>
 
-              <div style={{ overflowX: 'auto', display: 'flex', justifyContent: 'center' }}>
-                <div ref={previewRef} style={{ display: 'inline-block' }}>
-                  <InvoicePreview 
-                    invoice={newInvoice}
-                    client={clients.find(c => c.id === newInvoice.clientId)}
-                    settings={settings}
-                    totals={calculateTotals()}
-                  />
+                <div className={styles.previewWrapper}>
+                  <div className={styles.previewScaler}>
+                    <div ref={previewRef}>
+                      <InvoicePreview 
+                        invoice={newInvoice}
+                        client={clients.find(c => c.id === newInvoice.clientId)}
+                        settings={settings}
+                        totals={calculateTotals()}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -433,13 +438,13 @@ export default function InvoicesPage() {
         )}
       </AnimatePresence>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '12px' }}>
           <select 
             className={styles.input} 
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ width: 'auto' }}
+            style={{ width: '160px' }}
           >
             <option value="All">All Statuses</option>
             <option value="Draft">Draft</option>
@@ -462,18 +467,25 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Invoice Number</th>
-              <th>Client</th>
-              <th>Issue Date</th>
-              <th>Status</th>
-              <th className={styles.textRight}>Amount</th>
-            </tr>
-          </thead>
-          <tbody className="mono-text">
+      <motion.div 
+        className={styles.tableWrapper}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className={styles.tableCard}>
+          <div className={styles.tableCardInner}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Invoice Number</th>
+                  <th>Client</th>
+                  <th>Issue Date</th>
+                  <th>Status</th>
+                  <th className={styles.textRight}>Amount</th>
+                </tr>
+              </thead>
+              <tbody className="mono-text">
             {invoices
               .filter(inv => filterStatus === 'All' || inv.status === filterStatus)
               .map(inv => {
@@ -501,11 +513,12 @@ export default function InvoicesPage() {
                   <td className="sans-text">{client?.name || 'Unknown Client'}</td>
                   <td>{inv.issueDate}</td>
                   <td>
-                    <span className={
+                  <span className={`${styles.statusBadge} ${
                       inv.status === 'Paid' ? styles.statusPaid : 
                       inv.status === 'Overdue' ? styles.statusOverdue : 
+                      inv.status === 'Pending' ? styles.statusPending :
                       styles.statusDraft
-                    }>
+                    }`}>
                       {inv.status}
                     </span>
                   </td>
@@ -520,7 +533,9 @@ export default function InvoicesPage() {
             )}
           </tbody>
         </table>
-      </div>
+        </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

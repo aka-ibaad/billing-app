@@ -36,11 +36,53 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
   const paymentStatus = invoice.paymentStatus || 'payable_after';
   const advanceAmountPaid = invoice.advanceAmountPaid || 0;
 
+  const getWatermarkStyle = (): React.CSSProperties | null => {
+    if (!settings.enableWatermark || !settings.logoUrl) return null;
+    
+    let width = '60%';
+    switch (settings.watermarkSize) {
+      case 'Small': width = '20%'; break;
+      case 'Medium': width = '40%'; break;
+      case 'Large': width = '60%'; break;
+      case 'Full Page': width = '90%'; break;
+    }
+
+    let top = '50%';
+    let left = '50%';
+    if (settings.watermarkPosition === 'Top Center') top = '25%';
+    if (settings.watermarkPosition === 'Bottom Center') top = '75%';
+    if (settings.watermarkPosition === 'Custom') {
+      top = `${settings.watermarkCustomY ?? 50}%`;
+      left = `${settings.watermarkCustomX ?? 50}%`;
+    }
+
+    return {
+      opacity: (settings.watermarkOpacity ?? 5) / 100,
+      width,
+      top,
+      left,
+      transform: `translate(-50%, -50%) rotate(${settings.watermarkRotation ?? 0}deg)`
+    };
+  };
+
+  const watermarkStyle = getWatermarkStyle();
+
   return (
     <div className={styles.documentWrapper}>
       <div className={`${styles.document} ${wrapperClass}`}>
         
-        {settings.watermarkText && (
+        {watermarkStyle && (
+          <div className={styles.logoWatermarkContainer}>
+            <img 
+              src={settings.logoUrl!} 
+              alt="Watermark" 
+              className={styles.logoWatermark} 
+              style={watermarkStyle}
+            />
+          </div>
+        )}
+
+        {settings.watermarkText && !watermarkStyle && (
           <div className={styles.watermark}>
             {settings.watermarkText}
           </div>

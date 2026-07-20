@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAppData } from '@/context/AppDataContext';
 import { Plus } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 
 export default function ProductsPage() {
@@ -40,8 +41,17 @@ export default function ProductsPage() {
         </div>
       </header>
 
-      {isCreating && (
-        <form onSubmit={handleCreate} className={styles.formCard}>
+      <AnimatePresence>
+        {isCreating && (
+          <motion.div 
+            className={styles.addFormContainer}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className={styles.formCardOuter}>
+              <form onSubmit={handleCreate} className={styles.formCard}>
           <div className={styles.formGrid}>
             <div className={styles.formGroup}>
               <label>Product Name</label>
@@ -76,13 +86,22 @@ export default function ProductsPage() {
               onChange={e => setNewProduct({...newProduct, description: e.target.value})}
             />
           </div>
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className={styles.primaryButton}>Save Product</button>
-          </div>
-        </form>
-      )}
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" className={styles.primaryButton}>Save Product</button>
+              </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className={styles.tableWrapper}>
+      <motion.div 
+        className={styles.tableOuter}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr>
@@ -107,9 +126,10 @@ export default function ProductsPage() {
                 </tr>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
     </div>
   );
 }

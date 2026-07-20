@@ -58,6 +58,20 @@
   font-size: 60px;
 }
 
+.logoWatermarkContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.logoWatermark {
+  position: absolute;
+  object-fit: contain;
+  /* dynamic transforms and opacity injected inline via React */
+}
+
 .letterheadWrapper {
   width: calc(100% + 96px);
   margin: -64px -48px 32px -48px;

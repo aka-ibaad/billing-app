@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAppData } from '@/context/AppDataContext';
 import { Plus } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 
 export default function ExpensesPage() {
@@ -33,10 +34,6 @@ export default function ExpensesPage() {
     setIsCreating(false);
   };
 
-  const toggleStatus = (id: string, currentStatus: string) => {
-    updateExpense(id, { status: currentStatus === 'Paid' ? 'Unpaid' : 'Paid' });
-  };
-
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -54,8 +51,17 @@ export default function ExpensesPage() {
         </div>
       </header>
 
-      {isCreating && (
-        <form onSubmit={handleCreate} className={styles.formCard}>
+      <AnimatePresence>
+        {isCreating && (
+          <motion.div 
+            className={styles.addFormContainer}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className={styles.formCardOuter}>
+              <form onSubmit={handleCreate} className={styles.formCard}>
           <div className={styles.formGrid}>
             <div className={styles.formGroup}>
               <label>Payee Name</label>
@@ -129,13 +135,22 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className={styles.primaryButton}>Save Expense</button>
-          </div>
-        </form>
-      )}
+              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" className={styles.primaryButton}>Save Expense</button>
+              </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className={styles.tableWrapper}>
+      <motion.div 
+        className={styles.tableOuter}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr>
@@ -145,31 +160,33 @@ export default function ExpensesPage() {
               <th>Category</th>
               <th>Status</th>
               <th className={styles.textRight}>Amount</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {expenses.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.emptyState}>No expenses logged yet.</td>
+                <td colSpan={7} className={styles.emptyState}>No expenses logged yet.</td>
               </tr>
             ) : (
-              [...expenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(exp => (
-                <tr key={exp.id} className={styles.tableRow}>
-                  <td className="mono-text">{exp.date}</td>
-                  <td className="sans-text" style={{ fontWeight: 500 }}>{exp.payeeName}</td>
-                  <td>{exp.description}</td>
-                  <td>{exp.category}</td>
+              [...expenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (
+                <tr key={expense.id} className={styles.tableRow}>
+                  <td className="mono-text">{expense.date}</td>
+                  <td className="sans-text" style={{ fontWeight: 500 }}>{expense.payeeName}</td>
+                  <td>{expense.description}</td>
+                  <td>{expense.category}</td>
                   <td>
-                    <span 
-                      className={`${styles.statusBadge} ${exp.status === 'Paid' ? styles.statusPaid : styles.statusUnpaid}`}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => toggleStatus(exp.id, exp.status)}
-                    >
-                      {exp.status}
+                    <span className={`${styles.statusBadge} ${expense.status === 'Paid' ? styles.statusPaid : styles.statusUnpaid}`}>
+                      {expense.status}
                     </span>
                   </td>
                   <td className={`${styles.textRight} mono-text`}>
-                    ₨ {exp.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    ₨ {expense.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </td>
+                  <td className={styles.textRight}>
+                    <button className={styles.primaryButton} style={{ padding: '6px 12px', fontSize: '10px' }} onClick={() => {
+                      updateExpense(expense.id, { status: expense.status === 'Paid' ? 'Unpaid' : 'Paid' });
+                    }}>Toggle</button>
                   </td>
                 </tr>
               ))
@@ -177,6 +194,7 @@ export default function ExpensesPage() {
           </tbody>
         </table>
       </div>
+      </motion.div>
     </div>
   );
 }

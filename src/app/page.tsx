@@ -1,70 +1,185 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, CSSProperties } from 'react';
+import Link from 'next/link';
 import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
-import { Wallet, WarningCircle, CheckCircle, ArrowUpRight, ArrowDownRight, X, Clock } from '@phosphor-icons/react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ComposedChart, Area } from 'recharts';
+import { 
+  Wallet, WarningCircle, CheckCircle, Clock, TrendUp, TrendDown,
+  Plus, Users, ChartLineUp, Receipt, FileText, ArrowRight
+} from '@phosphor-icons/react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell 
+} from 'recharts';
 
 type FilterType = '7D' | '30D' | '12M';
 
 export default function Dashboard() {
-  const { invoices, expenses } = useAppData();
+  const { invoices, expenses, clients } = useAppData();
   const [filter, setFilter] = useState<FilterType>('30D');
-  const [modalData, setModalData] = useState<{ title: string; type: 'revenue' | 'expense' | null } | null>(null);
 
-  // --- Metrics Calculation ---
-  const validInvoices = invoices.filter(i => i.documentType !== 'quotation');
-  
-  const totalRevenue = validInvoices
-    .filter(i => i.status === 'Paid' || i.paymentStatus === 'advance_full' || (i.paymentStatus === 'advance_partial' && i.advanceAmountPaid))
-    .reduce((sum, inv) => {
-      let paid = 0;
-      const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-      let tTax = 0;
-      inv.taxes?.forEach(tax => tTax += subtotal * (tax.rate/100));
-      const total = subtotal + tTax - (inv.discount?.type === 'fixed' ? inv.discount.value : subtotal * ((inv.discount?.value||0)/100));
+  const validInvoices = useMemo(() => invoices.filter(i => i.documentType !== 'quotation'), [invoices]);
+
+  // Helper for invoice total
+  const getInvoiceTotal = (inv: any) => {
+    const subtotal = inv.items.reduce((s: number, item: any) => s + (item.quantity * item.rate), 0);
+    let tTax = 0;
+    inv.taxes?.forEach((tax: any) => tTax += subtotal * (tax.rate/100));
+    return subtotal + tTax - (inv.discount?.type === 'fixed' ? inv.discount.value : subtotal * ((inv.discount?.value||0)/100));
+  };
+
+  const getInvoicePaidAmount = (inv: any) => {
+    const total = getInvoiceTotal(inv);
+    if (inv.status === 'Paid' || inv.paymentStatus === 'advance_full') return total;
+    if (inv.paymentStatus === 'advance_partial' && inv.advanceAmountPaid) return inv.advanceAmountPaid;
+    return 0;
+  };
+
+  // Process all KPI data
+  const kpiData = useMemo(() => {
+    const now = new Date();
+    now.setHours(23, 59, 59, 999);
+    
+    let daysInFilter = 30;
+    if (filter === '7D') daysInFilter = 7;
+    if (filter === '12M') daysInFilter = 365;
+
+    const currentPeriodStart = new Date(now.getTime() - (daysInFilter * 24 * 60 * 60 * 1000));
+    const previousPeriodStart = new Date(currentPeriodStart.getTime() - (daysInFilter * 24 * 60 * 60 * 1000));
+
+    let curRev = 0, prevRev = 0;
+    let curExp = 0, prevExp = 0;
+    let curOut = 0, prevOut = 0;
+    let curOver = 0, prevOver = 0;
+
+    const numBuckets = filter === '12M' ? 12 : filter === '30D' ? 15 : 7;
+    const bucketSize = (daysInFilter * 24 * 60 * 60 * 1000) / numBuckets;
+    
+    const sparklines = {
+      revenue: Array(numBuckets).fill(0),
+      expenses: Array(numBuckets).fill(0),
+      profit: Array(numBuckets).fill(0),
+      outstanding: Array(numBuckets).fill(0)
+    };
+
+    validInvoices.forEach(inv => {
+      const d = new Date(inv.issueDate);
+      const isCurrent = d > currentPeriodStart && d <= now;
+      const isPrev = d > previousPeriodStart && d <= currentPeriodStart;
       
-      if (inv.status === 'Paid' || inv.paymentStatus === 'advance_full') {
-        paid = total;
-      } else if (inv.paymentStatus === 'advance_partial' && inv.advanceAmountPaid) {
-        paid = inv.advanceAmountPaid;
+      const paid = getInvoicePaidAmount(inv);
+      const total = getInvoiceTotal(inv);
+      const outstanding = Math.max(0, total - paid);
+      
+      if (isCurrent) {
+        curRev += paid;
+        if (inv.status !== 'Paid') curOut += outstanding;
+        if (inv.status === 'Overdue') curOver += outstanding;
+        
+        const bucketIndex = Math.min(numBuckets - 1, Math.floor((d.getTime() - currentPeriodStart.getTime()) / bucketSize));
+        if (bucketIndex >= 0) {
+          sparklines.revenue[bucketIndex] += paid;
+          sparklines.profit[bucketIndex] += paid;
+          if (inv.status !== 'Paid') sparklines.outstanding[bucketIndex] += outstanding;
+        }
+      } else if (isPrev) {
+        prevRev += paid;
+        if (inv.status !== 'Paid') prevOut += outstanding;
+        if (inv.status === 'Overdue') prevOver += outstanding;
       }
-      return sum + paid;
-    }, 0);
+    });
 
-  const totalExpenses = expenses
-    .filter(e => e.status === 'Paid')
-    .reduce((sum, exp) => sum + exp.amount, 0);
+    expenses.filter(e => e.status === 'Paid').forEach(exp => {
+      const d = new Date(exp.date);
+      const isCurrent = d > currentPeriodStart && d <= now;
+      const isPrev = d > previousPeriodStart && d <= currentPeriodStart;
 
-  const netProfit = totalRevenue - totalExpenses;
-
-  const totalOutstanding = validInvoices
-    .filter(i => i.status !== 'Paid')
-    .reduce((sum, inv) => {
-      const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-      let tTax = 0;
-      inv.taxes?.forEach(tax => tTax += subtotal * (tax.rate/100));
-      const total = subtotal + tTax - (inv.discount?.type === 'fixed' ? inv.discount.value : subtotal * ((inv.discount?.value||0)/100));
-      if (inv.paymentStatus === 'advance_partial' && inv.advanceAmountPaid) {
-        return sum + Math.max(0, total - inv.advanceAmountPaid);
+      if (isCurrent) {
+        curExp += exp.amount;
+        const bucketIndex = Math.min(numBuckets - 1, Math.floor((d.getTime() - currentPeriodStart.getTime()) / bucketSize));
+        if (bucketIndex >= 0) {
+          sparklines.expenses[bucketIndex] += exp.amount;
+          sparklines.profit[bucketIndex] -= exp.amount;
+        }
+      } else if (isPrev) {
+        prevExp += exp.amount;
       }
-      return sum + total;
-    }, 0);
+    });
 
-  const overdue = validInvoices
-    .filter(i => i.status === 'Overdue')
-    .reduce((sum, inv) => {
-      const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-      let tTax = 0;
-      inv.taxes?.forEach(tax => tTax += subtotal * (tax.rate/100));
-      const total = subtotal + tTax - (inv.discount?.type === 'fixed' ? inv.discount.value : subtotal * ((inv.discount?.value||0)/100));
-      if (inv.paymentStatus === 'advance_partial' && inv.advanceAmountPaid) {
-        return sum + Math.max(0, total - inv.advanceAmountPaid);
+    const calcTrend = (cur: number, prev: number, invertTrendColors = false) => {
+      if (prev === 0 && cur === 0) return { val: 0, text: '0%', type: 'neutral' as const };
+      if (prev === 0) return { val: 100, text: '+100%', type: invertTrendColors ? 'negative' as const : 'positive' as const };
+      const pct = ((cur - prev) / prev) * 100;
+      const text = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+      let type: 'positive' | 'negative' | 'neutral' = 'neutral';
+      if (pct > 0) type = invertTrendColors ? 'negative' : 'positive';
+      else if (pct < 0) type = invertTrendColors ? 'positive' : 'negative';
+      return { val: pct, text, type };
+    };
+
+    return {
+      revenue: { val: curRev, trend: calcTrend(curRev, prevRev), sparkline: sparklines.revenue.map((val, i) => ({ i, val })) },
+      profit: { val: curRev - curExp, trend: calcTrend(curRev - curExp, prevRev - prevExp), sparkline: sparklines.profit.map((val, i) => ({ i, val })) },
+      expenses: { val: curExp, trend: calcTrend(curExp, prevExp, true), sparkline: sparklines.expenses.map((val, i) => ({ i, val })) },
+      outstanding: { val: curOut, trend: calcTrend(curOut, prevOut, true), sparkline: sparklines.outstanding.map((val, i) => ({ i, val })) }
+    };
+  }, [validInvoices, expenses, filter]);
+
+  const mainChartData = useMemo(() => {
+    const data: { label: string; Revenue: number; Expenses: number; dateStr?: string; weekOffset?: number; key?: string }[] = [];
+    const now = new Date();
+    if (filter === '7D') {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now); d.setDate(d.getDate() - i);
+        data.push({ label: d.toLocaleDateString(undefined, { weekday: 'short' }), Revenue: 0, Expenses: 0, dateStr: d.toISOString().split('T')[0] });
       }
-      return sum + total;
-    }, 0);
+    } else if (filter === '30D') {
+      for (let i = 4; i >= 0; i--) { data.push({ label: `Week ${5 - i}`, Revenue: 0, Expenses: 0, weekOffset: i }); }
+    } else {
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        data.push({ label: d.toLocaleDateString(undefined, { month: 'short' }), Revenue: 0, Expenses: 0, key: `${d.getFullYear()}-${d.getMonth()}` });
+      }
+    }
+
+    validInvoices.forEach(inv => {
+      const d = new Date(inv.issueDate);
+      const paid = getInvoicePaidAmount(inv);
+      if(filter === '7D') {
+        const match = data.find(x => x.dateStr === d.toISOString().split('T')[0]);
+        if(match) match.Revenue += paid;
+      } else if (filter === '30D') {
+        const diffDays = Math.ceil(Math.abs(now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 30) {
+          const match = data.find(x => x.weekOffset === Math.min(Math.floor(diffDays / 7), 4));
+          if(match) match.Revenue += paid;
+        }
+      } else {
+        const match = data.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
+        if(match) match.Revenue += paid;
+      }
+    });
+
+    expenses.forEach(exp => {
+      const d = new Date(exp.date);
+      if(filter === '7D') {
+        const match = data.find(x => x.dateStr === d.toISOString().split('T')[0]);
+        if(match) match.Expenses += exp.amount;
+      } else if (filter === '30D') {
+        const diffDays = Math.ceil(Math.abs(now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 30) {
+          const match = data.find(x => x.weekOffset === Math.min(Math.floor(diffDays / 7), 4));
+          if(match) match.Expenses += exp.amount;
+        }
+      } else {
+        const match = data.find(x => x.key === `${d.getFullYear()}-${d.getMonth()}`);
+        if(match) match.Expenses += exp.amount;
+      }
+    });
+    return filter === '30D' ? data.reverse() : data;
+  }, [validInvoices, expenses, filter]);
 
   const statusCounts = {
     paid: validInvoices.filter(i => i.status === 'Paid').length,
@@ -74,404 +189,263 @@ export default function Dashboard() {
   };
 
   const pieData = [
-    { name: 'Paid', value: statusCounts.paid, color: '#117a11' },
-    { name: 'Pending', value: statusCounts.pending, color: '#f5a623' },
-    { name: 'Overdue', value: statusCounts.overdue, color: '#d0021b' },
-    { name: 'Draft', value: statusCounts.draft, color: '#888888' },
+    { name: 'Paid', value: statusCounts.paid, color: 'var(--color-chart-emerald)' },
+    { name: 'Pending', value: statusCounts.pending, color: 'var(--color-chart-amber)' },
+    { name: 'Overdue', value: statusCounts.overdue, color: 'var(--color-chart-expense)' },
+    { name: 'Draft', value: statusCounts.draft, color: 'var(--color-text-muted)' },
   ].filter(d => d.value > 0);
 
   const recentInvoices = [...validInvoices].reverse().slice(0, 5);
 
-  // --- Chart Data Processing ---
-  const chartData = useMemo(() => {
-    const now = new Date();
-    const dataMap = new Map<string, { label: string; Revenue: number; Expenses: number }>();
-    
-    if (filter === '7D') {
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        dataMap.set(d.toISOString().split('T')[0], { label: d.toLocaleDateString(undefined, { weekday: 'short' }), Revenue: 0, Expenses: 0 });
-      }
-    } else if (filter === '30D') {
-      for (let i = 4; i >= 0; i--) {
-        dataMap.set(`w${i}`, { label: `Week ${5 - i}`, Revenue: 0, Expenses: 0 });
-      }
-    } else {
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        dataMap.set(`${d.getFullYear()}-${d.getMonth()}`, { label: d.toLocaleDateString(undefined, { month: 'short' }), Revenue: 0, Expenses: 0 });
-      }
-    }
-
-    // Populate Revenue
-    validInvoices.forEach(inv => {
-      const issueDate = new Date(inv.issueDate);
-      if (filter === '7D') {
-        const key = issueDate.toISOString().split('T')[0];
-        if (dataMap.has(key)) {
-          const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-          dataMap.get(key)!.Revenue += subtotal;
-        }
-      } else if (filter === '30D') {
-        const diffTime = Math.abs(now.getTime() - issueDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays <= 30) {
-          const week = Math.floor(diffDays / 7);
-          const key = `w${Math.min(week, 4)}`;
-          if (dataMap.has(key)) {
-            const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-            dataMap.get(key)!.Revenue += subtotal;
-          }
-        }
-      } else {
-        const key = `${issueDate.getFullYear()}-${issueDate.getMonth()}`;
-        if (dataMap.has(key)) {
-          const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-          dataMap.get(key)!.Revenue += subtotal;
-        }
+  const activities = useMemo(() => {
+    const list: any[] = [];
+    validInvoices.slice(0, 3).forEach(inv => {
+      list.push({ type: 'invoice', title: `Invoice ${inv.number} Created`, time: inv.issueDate, dateObj: new Date(inv.issueDate) });
+      if (inv.status === 'Paid') {
+        list.push({ type: 'payment', title: `Payment Received for ${inv.number}`, time: inv.issueDate, dateObj: new Date(inv.issueDate) });
       }
     });
-
-    // Populate Expenses
-    expenses.forEach(exp => {
-      const expDate = new Date(exp.date);
-      if (filter === '7D') {
-        const key = expDate.toISOString().split('T')[0];
-        if (dataMap.has(key)) dataMap.get(key)!.Expenses += exp.amount;
-      } else if (filter === '30D') {
-        const diffTime = Math.abs(now.getTime() - expDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays <= 30) {
-          const week = Math.floor(diffDays / 7);
-          const key = `w${Math.min(week, 4)}`;
-          if (dataMap.has(key)) dataMap.get(key)!.Expenses += exp.amount;
-        }
-      } else {
-        const key = `${expDate.getFullYear()}-${expDate.getMonth()}`;
-        if (dataMap.has(key)) dataMap.get(key)!.Expenses += exp.amount;
-      }
+    expenses.slice(0, 3).forEach(exp => {
+      list.push({ type: 'expense', title: `Expense Logged: ${exp.description}`, time: exp.date, dateObj: new Date(exp.date) });
     });
+    return list.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()).slice(0, 5);
+  }, [validInvoices, expenses]);
 
-    if (filter === '30D') return Array.from(dataMap.values()).reverse();
-    return Array.from(dataMap.values());
-  }, [validInvoices, expenses, filter]);
+  const MiniChartCard = ({ title, value, trend, sparkline, color, icon: Icon, delay }: any) => (
+    <motion.div 
+      className={styles.metricCard}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay, ease: [0.32, 0.72, 0, 1] }}
+      style={{ '--card-accent': color, '--card-accent-rgb': color === 'var(--color-chart-blue)' ? '59,130,246' : color === 'var(--color-chart-emerald)' ? '16,185,129' : color === 'var(--color-chart-expense)' ? '239,68,68' : '245,158,11' } as CSSProperties}
+    >
+      <div className={styles.metricHeader}>
+        <div className={styles.metricIconWrapper}>
+          <Icon size={20} weight="duotone" />
+        </div>
+        <div className={styles.metricSparkline}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={sparkline}>
+              <defs>
+                <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Area type="monotone" dataKey="val" stroke={color} fillOpacity={1} fill={`url(#gradient-${title})`} strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div>
+        <div className={styles.metricTitle}>{title}</div>
+        <div className={styles.metricValue}>₨ {value.toLocaleString(undefined, {minimumFractionDigits: 0})}</div>
+        <div className={styles.metricFooter}>
+          <div className={`${styles.trendBadge} ${trend.type === 'positive' ? styles.positive : trend.type === 'negative' ? styles.negative : styles.neutral}`}>
+            {trend.type === 'positive' && <TrendUp size={12} />}
+            {trend.type === 'negative' && <TrendDown size={12} />}
+            {trend.text}
+          </div>
+          <span className={styles.metricSub}>vs previous {filter}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Dashboard</h1>
-        <div className={styles.filterGroup}>
-          <button className={`${styles.filterBtn} ${filter === '7D' ? styles.active : ''}`} onClick={() => setFilter('7D')}>7D</button>
-          <button className={`${styles.filterBtn} ${filter === '30D' ? styles.active : ''}`} onClick={() => setFilter('30D')}>30D</button>
-          <button className={`${styles.filterBtn} ${filter === '12M' ? styles.active : ''}`} onClick={() => setFilter('12M')}>12M</button>
+    <div className={styles.dashboard}>
+      <div className={styles.filterContainer}>
+        <div className={styles.filterTabs}>
+          {(['7D', '30D', '12M'] as FilterType[]).map(f => (
+            <button
+              key={f}
+              className={`${styles.filterTab} ${filter === f ? styles.active : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {filter === f && (
+                <motion.div layoutId="filter-active" className={styles.filterActiveBg} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+              )}
+              {f}
+            </button>
+          ))}
         </div>
-      </header>
-
-      {/* Metrics Cards */}
-      <div className={styles.metricsGrid}>
-        <motion.div 
-          className={styles.metricCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          onClick={() => setModalData({ title: 'Revenue Breakdown', type: 'revenue' })}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className={styles.metricHeader}>
-            <span className={styles.metricLabel}>Total Revenue</span>
-            <div className={styles.iconWrapper} style={{ backgroundColor: '#e6f6e6', color: '#117a11' }}>
-              <ArrowUpRight size={20} />
-            </div>
-          </div>
-          <div className={styles.metricValue}>₨ {totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-          <div className={styles.metricSub}>Click for detailed breakdown</div>
-        </motion.div>
-
-        <motion.div 
-          className={styles.metricCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          onClick={() => setModalData({ title: 'Expense Breakdown', type: 'expense' })}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className={styles.metricHeader}>
-            <span className={styles.metricLabel}>Total Expenses</span>
-            <div className={styles.iconWrapper} style={{ backgroundColor: '#fee', color: '#c00' }}>
-              <ArrowDownRight size={20} />
-            </div>
-          </div>
-          <div className={styles.metricValue}>₨ {totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-          <div className={styles.metricSub}>Click for detailed breakdown</div>
-        </motion.div>
-
-        <motion.div 
-          className={styles.metricCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <div className={styles.metricHeader}>
-            <span className={styles.metricLabel}>Net Profit</span>
-            <div className={styles.iconWrapper} style={{ backgroundColor: '#f0f4ff', color: '#0055ff' }}>
-              <Wallet size={20} />
-            </div>
-          </div>
-          <div className={styles.metricValue}>₨ {netProfit.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-          <div className={styles.metricSub}>Revenue minus Expenses</div>
-        </motion.div>
-
-        <motion.div 
-          className={styles.metricCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <div className={styles.metricHeader}>
-            <span className={styles.metricLabel}>Total Outstanding</span>
-            <div className={styles.iconWrapper} style={{ backgroundColor: '#fff3e0', color: '#ff9800' }}>
-              <Clock size={20} />
-            </div>
-          </div>
-          <div className={styles.metricValue}>₨ {totalOutstanding.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-          <div className={styles.metricSub}>Pending payments</div>
-        </motion.div>
-
-        <motion.div 
-          className={styles.metricCard}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <div className={styles.metricHeader}>
-            <span className={styles.metricLabel}>Overdue</span>
-            <div className={styles.iconWrapper} style={{ backgroundColor: '#ffebee', color: '#f44336' }}>
-              <WarningCircle size={20} />
-            </div>
-          </div>
-          <div className={styles.metricValue}>₨ {overdue.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-          <div className={styles.metricSub}>Past due date</div>
-        </motion.div>
       </div>
 
-      {/* Dynamic Charts Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginTop: '32px' }}>
-        
-        {/* Animated Bar Chart */}
-        <motion.div 
-          className={styles.chartSection}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
-        >
-          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Revenue vs Expenses (Bar)</h2>
-          <div style={{ width: '100%', height: '300px' }}>
+      <div className={styles.summaryGrid}>
+        <MiniChartCard title="Revenue" value={kpiData.revenue.val} trend={kpiData.revenue.trend} sparkline={kpiData.revenue.sparkline} color="var(--color-chart-blue)" icon={Wallet} delay={0.1} />
+        <MiniChartCard title="Profit" value={kpiData.profit.val} trend={kpiData.profit.trend} sparkline={kpiData.profit.sparkline} color="var(--color-chart-emerald)" icon={TrendUp} delay={0.2} />
+        <MiniChartCard title="Expenses" value={kpiData.expenses.val} trend={kpiData.expenses.trend} sparkline={kpiData.expenses.sparkline} color="var(--color-chart-expense)" icon={TrendDown} delay={0.3} />
+        <MiniChartCard title="Pending" value={kpiData.outstanding.val} trend={kpiData.outstanding.trend} sparkline={kpiData.outstanding.sparkline} color="var(--color-chart-amber)" icon={Clock} delay={0.4} />
+      </div>
+
+      <div className={styles.chartsRow}>
+        <motion.div className={styles.chartCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
+          <h2 className={styles.sectionTitle}>Income vs Expenses</h2>
+          <div className={styles.chartContainer}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
-                <RechartsTooltip cursor={{fill: '#f5f5f5'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`} />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="Revenue" fill="#117a11" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="Expenses" fill="#c00" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              </BarChart>
+              <AreaChart data={mainChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-chart-blue)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--color-chart-blue)" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-chart-expense)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--color-chart-expense)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₨${val/1000}k`} />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: 'var(--color-bg-sidebar)', backdropFilter: 'blur(10px)', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}
+                  itemStyle={{ color: 'var(--color-text-primary)' }}
+                />
+                <Area type="monotone" dataKey="Revenue" stroke="var(--color-chart-blue)" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                <Area type="monotone" dataKey="Expenses" stroke="var(--color-chart-expense)" strokeWidth={3} fillOpacity={1} fill="url(#colorExpenses)" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* Animated Line Chart */}
-        <motion.div 
-          className={styles.chartSection}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
-        >
-          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Revenue Trend (Line)</h2>
-          <div style={{ width: '100%', height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
-                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`} />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Line type="monotone" dataKey="Revenue" stroke="#117a11" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* Status Breakdown (Pie Chart) */}
-        <motion.div 
-          className={styles.chartSection}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
-        >
-          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Status Breakdown (Pie)</h2>
-          <div style={{ width: '100%', height: '300px' }}>
+        <motion.div className={styles.chartCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
+          <h2 className={styles.sectionTitle}>Invoice Status</h2>
+          <div className={styles.chartContainer} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                <Pie data={pieData} innerRadius={80} outerRadius={110} paddingAngle={4} dataKey="value" stroke="none">
+                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
-                <RechartsTooltip formatter={(value: any) => `${value} Invoices`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                <Legend verticalAlign="bottom" height={36} />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: 'var(--color-bg-sidebar)', backdropFilter: 'blur(10px)', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}
+                  itemStyle={{ color: 'var(--color-text-primary)' }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
+      </div>
 
-        {/* Animated Composed Chart */}
-        <motion.div 
-          className={styles.chartSection}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)' }}
-        >
-          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Overview (Line + Bar)</h2>
-          <div style={{ width: '100%', height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#888', fontSize: 12}} dx={-10} tickFormatter={(val) => `₨${val}`} />
-                <RechartsTooltip cursor={{fill: '#f5f5f5'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(value: any) => `₨ ${Number(value).toLocaleString()}`} />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="Expenses" barSize={30} fill="#c00" radius={[4, 4, 0, 0]} />
-                <Line type="monotone" dataKey="Revenue" stroke="#117a11" strokeWidth={3} />
-              </ComposedChart>
-            </ResponsiveContainer>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
+        <h2 className={styles.sectionTitle}>Quick Actions</h2>
+        <div className={styles.actionsGrid}>
+          <Link href="/invoices/new" className={styles.actionCard}>
+            <FileText size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-blue)" />
+            <span className={styles.actionLabel}>New Invoice</span>
+          </Link>
+          <Link href="/clients/new" className={styles.actionCard}>
+            <Users size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-emerald)" />
+            <span className={styles.actionLabel}>Add Client</span>
+          </Link>
+          <Link href="/products/new" className={styles.actionCard}>
+            <ChartLineUp size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-purple)" />
+            <span className={styles.actionLabel}>Add Product</span>
+          </Link>
+          <Link href="/expenses" className={styles.actionCard}>
+            <Receipt size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-expense)" />
+            <span className={styles.actionLabel}>Record Expense</span>
+          </Link>
+          <div className={styles.actionCard} style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+            <FileText size={24} weight="duotone" className={styles.actionIcon} />
+            <span className={styles.actionLabel}>Create Receipt</span>
+          </div>
+          <div className={styles.actionCard} style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+            <Wallet size={24} weight="duotone" className={styles.actionIcon} />
+            <span className={styles.actionLabel}>View Reports</span>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className={styles.bottomRow}>
+        <motion.div className={styles.chartCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
+          <h2 className={styles.sectionTitle}>Recent Activity</h2>
+          <div className={styles.activityList}>
+            {activities.length === 0 ? (
+              <div className={styles.emptyState}>
+                <Clock size={32} weight="duotone" className={styles.emptyIcon} />
+                <div className={styles.emptyTitle}>No activity yet</div>
+                <div className={styles.emptyText}>Create your first invoice</div>
+              </div>
+            ) : (
+              activities.map((act, i) => (
+                <div key={i} className={styles.activityItem}>
+                  <div className={styles.activityAvatar}>
+                    {act.type === 'invoice' && <FileText size={16} color="var(--color-chart-blue)" weight="bold" />}
+                    {act.type === 'payment' && <CheckCircle size={16} color="var(--color-chart-emerald)" weight="bold" />}
+                    {act.type === 'expense' && <Receipt size={16} color="var(--color-chart-expense)" weight="bold" />}
+                  </div>
+                  <div className={styles.activityContent}>
+                    <div className={styles.activityTitle}>{act.title}</div>
+                    <div className={styles.activityTime}>{new Date(act.time).toLocaleDateString()}</div>
+                  </div>
+                  <div className={styles.activityLine} />
+                </div>
+              ))
+            )}
           </div>
         </motion.div>
-        {/* Recent Invoices List */}
-        <motion.div 
-          className={styles.chartSection}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
-          style={{ gridColumn: '1 / -1', background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border)', overflowX: 'auto' }}
-        >
-          <h2 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>Recent Invoices</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #eee' }}>
-                <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Invoice #</th>
-                <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentInvoices.map(inv => (
-                <tr key={inv.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                  <td style={{ padding: '16px 0' }} className="mono-text">{inv.number}</td>
-                  <td style={{ padding: '16px 0' }}>
-                    <span style={{ 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      fontSize: '12px',
-                      backgroundColor: inv.status === 'Paid' ? '#e6f6e6' : inv.status === 'Overdue' ? '#fee' : '#fff3e0',
-                      color: inv.status === 'Paid' ? '#117a11' : inv.status === 'Overdue' ? '#c00' : '#ff9800'
-                    }}>
-                      {inv.status}
-                    </span>
-                  </td>
+
+        <motion.div className={styles.chartCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.9 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className={styles.sectionTitle}>Recent Invoices</h2>
+            <Link href="/invoices" style={{ color: 'var(--color-accent)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+              View All <ArrowRight size={14} />
+            </Link>
+          </div>
+          
+          <div className={styles.invoicesTableWrapper}>
+            <table className={styles.invoicesTable}>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recentInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>
+                      <div className={styles.emptyState}>
+                        <FileText size={32} weight="duotone" className={styles.emptyIcon} />
+                        <div className={styles.emptyTitle}>No invoices found</div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  recentInvoices.map(inv => {
+                    const client = clients.find(c => c.id === inv.clientId);
+                    return (
+                      <tr key={inv.id}>
+                        <td>
+                          <div className={styles.clientCell}>
+                            <div className={styles.clientAvatar}>{client?.name?.substring(0, 2).toUpperCase() || 'NA'}</div>
+                            <div>
+                              <div style={{ fontWeight: 500, fontSize: '13px' }}>{client?.name || 'Unknown'}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{inv.number}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: 600, fontSize: '13px' }}>₨ {getInvoiceTotal(inv).toLocaleString()}</td>
+                        <td>
+                          <span className={`${styles.statusBadge} ${styles[`status${inv.status}`]}`}>
+                            {inv.status}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                          {new Date(inv.issueDate).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       </div>
 
-      {/* Breakdown Modal */}
-      <AnimatePresence>
-        {modalData && (
-          <>
-            <motion.div 
-              className={styles.modalOverlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setModalData(null)}
-              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 999 }}
-            />
-            <motion.div 
-              className={styles.modalContent}
-              initial={{ opacity: 0, y: 50, x: '-50%', scale: 0.95 }}
-              animate={{ opacity: 1, y: '-50%', x: '-50%', scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              style={{ position: 'fixed', top: '50%', left: '50%', background: 'white', padding: '32px', borderRadius: '16px', width: '90%', maxWidth: '800px', zIndex: 1000, maxHeight: '80vh', overflowY: 'auto' }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 300 }}>{modalData.title}</h2>
-                <button onClick={() => setModalData(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
-              </div>
-
-              {modalData.type === 'revenue' && (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #eee' }}>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Invoice #</th>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Client</th>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Date</th>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666', textAlign: 'right' }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {validInvoices.filter(i => i.status === 'Paid' || i.paymentStatus === 'advance_full' || (i.paymentStatus === 'advance_partial' && i.advanceAmountPaid)).map(inv => {
-                      let paid = 0;
-                      const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-                      let tTax = 0;
-                      inv.taxes?.forEach(tax => tTax += subtotal * (tax.rate/100));
-                      const total = subtotal + tTax - (inv.discount?.type === 'fixed' ? inv.discount.value : subtotal * ((inv.discount?.value||0)/100));
-                      if (inv.status === 'Paid' || inv.paymentStatus === 'advance_full') paid = total;
-                      else if (inv.paymentStatus === 'advance_partial' && inv.advanceAmountPaid) paid = inv.advanceAmountPaid;
-                      return (
-                        <tr key={inv.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                          <td style={{ padding: '16px 0' }} className="mono-text">{inv.number}</td>
-                          <td style={{ padding: '16px 0' }}>{inv.clientId}</td>
-                          <td style={{ padding: '16px 0' }}>{inv.issueDate}</td>
-                          <td style={{ padding: '16px 0', textAlign: 'right' }} className="mono-text">₨ {paid.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
-
-              {modalData.type === 'expense' && (
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #eee' }}>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Date</th>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Payee</th>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666' }}>Category</th>
-                      <th style={{ padding: '12px 0', fontSize: '12px', color: '#666', textAlign: 'right' }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.filter(e => e.status === 'Paid').map(exp => (
-                      <tr key={exp.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                        <td style={{ padding: '16px 0' }}>{exp.date}</td>
-                        <td style={{ padding: '16px 0', fontWeight: 500 }}>{exp.payeeName}</td>
-                        <td style={{ padding: '16px 0' }}>{exp.category}</td>
-                        <td style={{ padding: '16px 0', textAlign: 'right' }} className="mono-text">₨ {exp.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

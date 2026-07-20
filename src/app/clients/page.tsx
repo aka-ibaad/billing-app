@@ -52,8 +52,9 @@ export default function ClientsPage() {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
-            <form onSubmit={handleAddClient} className={styles.addForm}>
-              <div className={styles.formGroup}>
+            <div className={styles.addFormCard}>
+              <form onSubmit={handleAddClient} className={styles.addForm}>
+                <div className={styles.formGroup}>
                 <label>Company Name</label>
                 <input 
                   type="text" 
@@ -98,7 +99,8 @@ export default function ClientsPage() {
                 <button type="button" className={styles.cancelButton} onClick={() => setIsAdding(false)}>Cancel</button>
                 <button type="submit" className={styles.submitButton}>Save Client</button>
               </div>
-            </form>
+              </form>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -125,21 +127,28 @@ export default function ClientsPage() {
         </select>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Client Name</th>
-              <th>Email</th>
-              <th>Added</th>
-              <th className={styles.textRight}>Total Invoices</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredClients.length === 0 ? (
-              <tr>
-                <td colSpan={4} className={styles.emptyState}>No clients found.</td>
-              </tr>
+      <motion.div 
+        className={styles.tableWrapper}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className={styles.tableCard}>
+          <div className={styles.tableCardInner}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Client Name</th>
+                  <th>Email</th>
+                  <th>Added</th>
+                  <th className={styles.textRight}>Total Invoices</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredClients.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className={styles.emptyState}>No clients found.</td>
+                  </tr>
             ) : (
               filteredClients.map(client => {
                 const clientInvoicesCount = invoices.filter(inv => inv.clientId === client.id).length;
@@ -152,10 +161,12 @@ export default function ClientsPage() {
                   </tr>
                 );
               })
-            )}
-          </tbody>
-        </table>
-      </div>
+              )}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
