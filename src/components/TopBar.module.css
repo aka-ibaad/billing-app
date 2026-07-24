@@ -280,9 +280,17 @@
 /* --- MOBILE TOPBAR --- */
 @media (max-width: 768px) {
   .topbar {
-    padding-top: calc(16px + env(safe-area-inset-top));
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    padding: calc(16px + env(safe-area-inset-top)) var(--space-2) var(--space-2) var(--space-2);
+    margin: 0 -var(--space-4) var(--space-4) -var(--space-4);
     align-items: center;
-    margin-bottom: var(--space-4);
+    background: var(--color-bg-sidebar);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--color-border-subtle);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   }
 
   .greetingSection {
