@@ -414,30 +414,30 @@ button:active {
 @media (max-width: 768px) {
   :root {
     /* Aggressively scale down typography for dense mobile UI */
-    --text-section: 14px;
-    --text-heading: 20px;
-    --text-number: 24px;
-    --text-label: 11px;
-    --text-desc: 10px;
+    --text-section: 12px;
+    --text-heading: 16px;
+    --text-number: 20px;
+    --text-label: 10px;
+    --text-desc: 9px;
     
     /* Aggressively scale down spacing */
     --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
-    --space-8: 32px;
-    --space-12: 48px;
-    --space-16: 64px;
+    --space-2: 6px;
+    --space-3: 8px;
+    --space-4: 12px;
+    --space-5: 16px;
+    --space-6: 20px;
+    --space-8: 24px;
+    --space-12: 32px;
+    --space-16: 48px;
     
     /* Scale down large radii to save space */
-    --radius-xl: 16px;
-    --radius-lg: 12px;
-    --radius-md: 10px;
+    --radius-xl: 12px;
+    --radius-lg: 10px;
+    --radius-md: 8px;
   }
   
   html {
-    font-size: 85%; /* Shrinks all rem-based sizes by 15% */
+    font-size: 75%; /* Shrinks all rem-based sizes by 25% */
   }
 }
