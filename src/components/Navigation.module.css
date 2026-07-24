@@ -238,3 +238,113 @@
   transform: rotate(45deg);
   color: var(--color-text-primary);
 }
+
+/* --- MOBILE BOTTOM NAVIGATION --- */
+@media (max-width: 768px) {
+  .nav {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: calc(64px + env(safe-area-inset-bottom));
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 0 var(--space-2) env(safe-area-inset-bottom) var(--space-2);
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--color-border-subtle);
+    z-index: 100;
+    background-color: rgba(var(--dark-bg-sidebar), 0.85); /* Slightly more transparent for iOS feel */
+  }
+
+  .navTop {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .logoSection {
+    display: none;
+  }
+
+  .navList {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0;
+  }
+
+  .navItem {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+  }
+
+  .navPill {
+    flex-direction: column;
+    padding: 8px 0;
+    gap: 4px;
+    font-size: 10px;
+    width: 100%;
+    align-items: center;
+    border-radius: 0;
+  }
+
+  /* Only show the first 5 items on mobile to prevent squishing */
+  .navItem:nth-child(n+6) {
+    display: none;
+  }
+
+  .navBottom {
+    display: none; /* Hide profile on bottom bar */
+  }
+
+  .activePillBg {
+    display: none; /* Remove background pill on mobile */
+  }
+
+  .activePillBorder {
+    left: 50%;
+    top: 0;
+    bottom: auto;
+    width: 24px;
+    height: 3px;
+    margin-left: -12px;
+    border-radius: 0 0 4px 4px;
+  }
+
+  .linkLabel {
+    font-size: 10px;
+  }
+
+  /* Disable hover effects on mobile */
+  @media (hover: none) {
+    .navPill:hover {
+      background-color: transparent;
+      color: var(--color-text-secondary);
+    }
+    .navPill.active:hover {
+      color: var(--color-accent);
+    }
+    .navPill:hover .iconWrapper {
+      transform: none;
+    }
+  }
+
+  .desktopOnly {
+    display: none !important;
+  }
+}
+
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobileOnly {
+    display: flex !important;
+  }
+}

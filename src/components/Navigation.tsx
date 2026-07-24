@@ -12,10 +12,14 @@ const navItems = [
   { id: 'dashboard', path: '/', label: 'Overview', icon: SquaresFour },
   { id: 'invoices', path: '/invoices', label: 'Invoices', icon: FileText },
   { id: 'clients', path: '/clients', label: 'Clients', icon: Users },
-  { id: 'products', path: '/products', label: 'Products', icon: ChartLineUp },
   { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt },
-  { id: 'records', path: '/records', label: 'Records', icon: FileText },
-  { id: 'insights', path: '/insights', label: 'Insights', icon: Sparkle },
+  // 5th item for mobile bottom bar
+  { id: 'menu', path: '/settings', label: 'Menu', icon: Gear, mobileOnly: true },
+  
+  // Extra desktop items (hidden on mobile)
+  { id: 'products', path: '/products', label: 'Products', icon: ChartLineUp, desktopOnly: true },
+  { id: 'records', path: '/records', label: 'Records', icon: FileText, desktopOnly: true },
+  { id: 'insights', path: '/insights', label: 'Insights', icon: Sparkle, desktopOnly: true },
 ];
 
 export default function Navigation() {
@@ -46,9 +50,11 @@ export default function Navigation() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
-            
             return (
-              <li key={item.id} className={styles.navItem}>
+              <li 
+                key={item.id} 
+                className={`${styles.navItem} ${item.mobileOnly ? styles.mobileOnly : ''} ${item.desktopOnly ? styles.desktopOnly : ''}`}
+              >
                 <Link 
                   href={item.path}
                   className={`${styles.navPill} ${isActive ? styles.active : ''}`}

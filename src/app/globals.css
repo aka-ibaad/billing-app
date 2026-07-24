@@ -240,7 +240,7 @@
 
 body {
   margin: 0;
-  padding: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
   font-family: var(--font-sans);
@@ -249,6 +249,8 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   min-height: 100vh;
+  /* Prevent sticky hovers on iOS */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Native select and options styling */
@@ -368,26 +370,39 @@ button:active {
   letter-spacing: normal;
 }
 
+/* Application Layout */
 .app-layout {
-  display: block;
+  display: flex;
   min-height: 100vh;
 }
 
 .main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevents overflow */
   margin-left: 312px; 
   background-color: transparent;
   min-height: 100vh;
   position: relative;
   z-index: 1;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 @media (max-width: 1024px) {
-  .app-layout {
-    display: block;
-  }
   .main-content {
     margin-left: 0;
-    padding-bottom: 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+  }
+  
+  .main-content {
+    /* Leave room for bottom nav */
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
     width: 100%;
     max-width: 100vw;
   }

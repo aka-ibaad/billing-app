@@ -182,3 +182,22 @@
   margin-bottom: var(--space-3);
   color: var(--color-border-strong);
 }
+
+/* --- MOBILE NOTIFICATION CENTER --- */
+@media (max-width: 768px) {
+  .panel {
+    max-width: 100%;
+    border-left: none;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    top: auto;
+    max-height: 85vh;
+  }
+
+  .deleteBtn {
+    opacity: 1; /* Always visible on touch devices */
+  }
+
+  .list {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

@@ -5,7 +5,7 @@ import NotificationCenter from '@/components/NotificationCenter';
 import FloatingQuickCreate from '@/components/FloatingQuickCreate';
 import { AppDataProvider } from '@/context/AppDataContext';
 import { ThemeProvider } from '@/context/ThemeContext';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Space_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -26,6 +26,24 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: 'Bespoke Billing',
   description: 'High-end billing application',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Billing',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#050505' },
+  ],
 };
 
 export default function RootLayout({

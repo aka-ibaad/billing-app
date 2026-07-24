@@ -76,3 +76,20 @@
   justify-content: center;
   cursor: pointer;
 }
+
+.fabMain:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.fabMain:active {
+  transform: translateY(0);
+}
+
+/* --- MOBILE FAB --- */
+@media (max-width: 768px) {
+  .fabContainer {
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    right: var(--space-4);
+  }
+}

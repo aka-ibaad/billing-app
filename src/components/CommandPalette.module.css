@@ -163,3 +163,29 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* --- MOBILE COMMAND PALETTE --- */
+@media (max-width: 768px) {
+  .backdrop {
+    padding-top: 0;
+    align-items: flex-end; /* Align to bottom on mobile */
+  }
+
+  .paletteContainer {
+    max-width: 100%;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    margin: 0;
+    border: none;
+    border-top: 1px solid var(--color-dropdown-border);
+    max-height: 85vh; /* Don't take full screen, leave a bit at top */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .resultsContainer {
+    max-height: calc(85vh - 64px - env(safe-area-inset-bottom));
+  }
+
+  .closeBtn {
+    display: none; /* Hide Esc button on mobile */
+  }
+}
