@@ -407,3 +407,29 @@ button:active {
     max-width: 100vw;
   }
 }
+
+/* =========================================
+   MOBILE RESPONSIVENESS SCALING
+   ========================================= */
+@media (max-width: 768px) {
+  :root {
+    /* Scale down typography */
+    --text-section: 16px;
+    --text-heading: 28px;
+    --text-number: 32px;
+    
+    /* Scale down spacing */
+    --space-1: 6px;
+    --space-2: 12px;
+    --space-3: 16px;
+    --space-4: 24px;
+    --space-5: 32px;
+    --space-6: 40px;
+    --space-8: 48px;
+    --space-12: 64px;
+    --space-16: 96px;
+    
+    /* Scale down large radii to save space */
+    --radius-xl: 16px;
+  }
+}
