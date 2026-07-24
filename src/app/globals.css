@@ -414,11 +414,20 @@ button:active {
 @media (max-width: 768px) {
   :root {
     /* Aggressively scale down typography for dense mobile UI */
-    --text-section: 12px;
-    --text-heading: 16px;
-    --text-number: 20px;
-    --text-label: 10px;
-    --text-desc: 9px;
+    --text-xs: 9px;
+    --text-sm: 10px;
+    --text-base: 12px;
+    --text-lg: 14px;
+    --text-xl: 16px;
+    --text-2xl: 18px;
+    --text-3xl: 20px;
+    --text-4xl: 24px;
+    
+    --text-section: 11px;
+    --text-heading: 14px;
+    --text-number: 18px;
+    --text-label: 9px;
+    --text-desc: 8px;
     
     /* Aggressively scale down spacing */
     --space-1: 4px;
