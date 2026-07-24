@@ -1,6 +1,7 @@
 .container {
   padding: var(--space-8) var(--space-6);
-  max-width: 1400px;
+  max-width: 1800px;
+  width: 100%; /* flex-item auto-margin trap, see layout.tsx */
   margin: 0 auto;
 }
 
@@ -8,6 +9,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
   margin-bottom: var(--space-8);
   border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: var(--space-4);
@@ -125,14 +128,43 @@
 
 .builderHeader {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: var(--space-6);
+  /* Document Type carries the longest content ("Invoice (Standard)"),
+     so it needs a real minimum instead of an even 1fr share, which was
+     clipping it against the select's native dropdown arrow. */
+  grid-template-columns: minmax(160px, 2fr) minmax(120px, 1fr) minmax(150px, 1.3fr);
+  gap: var(--space-4);
+  row-gap: var(--space-6);
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  min-width: 0; /* Grid items default to min-width: auto, which lets a
+    wide child (like the Document Type select) push the track wider than
+    its 1fr share instead of shrinking to fit. */
+}
+
+/* A date+time pair can land in either the wide or narrow builderHeader
+   track depending on how many sibling fields render that row (e.g.
+   "Advance Amount Paid" only shows conditionally, which shifts what
+   follows it into a different column). Rather than depend on which
+   track it lands in, each input gets a real minimum and the row wraps
+   to two lines instead of clipping when there isn't enough space. */
+.dateTimeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dateTimeRow input[type="date"] {
+  flex: 2 1 130px;
+  min-width: 130px;
+}
+
+.dateTimeRow input[type="time"] {
+  flex: 1 1 90px;
+  min-width: 90px;
 }
 
 .formGroup label {
@@ -144,9 +176,13 @@
 }
 
 .input {
+  width: 100%;
+  min-width: 0; /* Without this, <select> sizes to its widest option text
+    (e.g. "Invoice (Standard)") instead of its grid track, overflowing
+    .builderHeader into the preview pane next to it. */
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
-  padding: 10px 14px;
+  padding: 10px 32px 10px 14px;
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   color: var(--color-text-primary);
@@ -154,6 +190,10 @@
   outline: none;
   transition: all 0.2s var(--ease-custom);
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .input:focus {
@@ -171,12 +211,20 @@
   padding: var(--space-6);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
+  overflow-x: auto;
 }
 
+/* Fixed minimums per column stop qty/rate/amount from being squeezed to
+   ~45px (barely wide enough for a single digit) when the builder pane is
+   narrow — at 3fr/1fr/1fr/1fr with a 32px gap, 4 gaps alone ate ~30% of
+   the row's width before any column got a share. auto-fit isn't viable
+   here since columns must stay aligned with the header; minmax keeps a
+   readable floor and lets the row scroll horizontally only if the pane
+   is narrower than that floor. */
 .itemsHeader {
   display: grid;
-  grid-template-columns: 3fr 1fr 1fr 1fr 40px;
-  gap: var(--space-4);
+  grid-template-columns: minmax(140px, 3fr) minmax(56px, 0.7fr) minmax(76px, 0.9fr) minmax(90px, 1fr) 32px;
+  gap: var(--space-2);
   font-size: 11px;
   color: var(--color-text-secondary);
   text-transform: uppercase;
@@ -188,8 +236,8 @@
 
 .itemRow {
   display: grid;
-  grid-template-columns: 3fr 1fr 1fr 1fr 40px;
-  gap: var(--space-4);
+  grid-template-columns: minmax(140px, 3fr) minmax(56px, 0.7fr) minmax(76px, 0.9fr) minmax(90px, 1fr) 32px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -415,12 +463,13 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 600;
-  padding-bottom: var(--space-4);
+  padding: 0 var(--space-4) var(--space-4) 0;
   border-bottom: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
 }
 
 .table td {
-  padding: var(--space-4) 0;
+  padding: var(--space-4) var(--space-4) var(--space-4) 0;
   border-bottom: 1px solid var(--color-border-subtle);
   font-size: var(--text-sm);
   color: var(--color-text-primary);
@@ -460,6 +509,36 @@
   text-align: center;
   padding: var(--space-12) 0 !important;
   color: var(--color-text-secondary);
+}
+
+.emptyStateInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.emptyStateIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.emptyStateTitle {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+
+.emptyStateDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 /* Mobile Responsiveness */
@@ -547,6 +626,12 @@
    the box's layout width stays at its native size. */
 .previewWrapper {
   width: 100%;
+  min-width: 0; /* without this, the flex-shrink:0 child below (which is
+                   rendered at its natural 800px/320px size) sets this
+                   flex item's automatic minimum size to 800px, so it never
+                   shrinks to the pane's real width and the JS scale-to-fit
+                   below permanently measures 800 instead of the true
+                   available width, locking the scale at 1 forever. */
   overflow: hidden;
   display: flex;
   justify-content: center;

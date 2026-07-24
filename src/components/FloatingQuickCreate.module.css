@@ -9,6 +9,19 @@
   gap: var(--space-3);
 }
 
+/* Dims and blurs whatever's behind the expanded menu, consistent with
+   how CommandPalette/NotificationCenter treat their overlays, instead of
+   the pill labels floating directly over live page content with nothing
+   backing them. */
+.fabBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 99;
+}
+
 .fabMenu {
   display: flex;
   flex-direction: column;

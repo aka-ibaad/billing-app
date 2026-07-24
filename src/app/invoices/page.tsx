@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppData, Tax } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
-import { Plus, Trash, DownloadSimple, Image as ImageIcon } from '@phosphor-icons/react';
+import { Plus, Trash, DownloadSimple, Image as ImageIcon, FileText } from '@phosphor-icons/react';
 import InvoicePreview from '@/components/InvoicePreview';
 import UpcomingDueCalendar from '@/components/dashboard/UpcomingDueCalendar';
 import { InvoiceStatusChart } from '@/components/dashboard/DetailedCharts';
@@ -65,7 +65,7 @@ function InvoicesContent() {
   // half of the page visible). Measuring the real container width and the
   // document's natural height in JS and applying the scale via an inline
   // transform is far more robust and works the same for both formats.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const wrapperEl = previewWrapperRef.current;
     const contentEl = previewRef.current;
     if (!wrapperEl || !contentEl) return;
@@ -83,7 +83,11 @@ function InvoicesContent() {
     ro.observe(wrapperEl);
     ro.observe(contentEl);
     return () => ro.disconnect();
-  }, [newInvoice.format]);
+    // isCreating is required here even though it's not read directly: the
+    // wrapper/content refs are only attached to the DOM while the builder
+    // panel is mounted, so without this the effect can run once before the
+    // panel opens (finding null refs) and never re-run once it does.
+  }, [newInvoice.format, isCreating]);
 
   const handleAddItem = () => {
     setNewInvoice({
@@ -284,20 +288,18 @@ function InvoicesContent() {
                   </div>
                   <div className={styles.formGroup}>
                     <label>Issue Date & Time</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input 
-                        type="date" 
+                    <div className={styles.dateTimeRow}>
+                      <input
+                        type="date"
                         className={`${styles.input} mono-text`}
-                        style={{ flex: 2 }}
-                        value={newInvoice.issueDate} 
-                        onChange={e => setNewInvoice({...newInvoice, issueDate: e.target.value})} 
+                        value={newInvoice.issueDate}
+                        onChange={e => setNewInvoice({...newInvoice, issueDate: e.target.value})}
                       />
-                      <input 
-                        type="time" 
+                      <input
+                        type="time"
                         className={`${styles.input} mono-text`}
-                        style={{ flex: 1 }}
-                        value={newInvoice.issueTime} 
-                        onChange={e => setNewInvoice({...newInvoice, issueTime: e.target.value})} 
+                        value={newInvoice.issueTime}
+                        onChange={e => setNewInvoice({...newInvoice, issueTime: e.target.value})}
                       />
                     </div>
                   </div>
@@ -609,7 +611,7 @@ function InvoicesContent() {
                   <th className={styles.textRight}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="mono-text">
+              <tbody>
             {invoices
               .filter(inv => filterStatus === 'All' || inv.status === filterStatus)
               .map(inv => {
@@ -633,9 +635,9 @@ function InvoicesContent() {
 
                 return (
                 <tr key={inv.id}>
-                  <td>{inv.number}</td>
+                  <td className="mono-text">{inv.number}</td>
                   <td className="sans-text">{client?.name || 'Unknown Client'}</td>
-                  <td>{inv.issueDate}</td>
+                  <td className="mono-text">{inv.issueDate}</td>
                   <td>
                   <span className={`${styles.statusBadge} ${
                       inv.status === 'Paid' ? styles.statusPaid : 
@@ -668,7 +670,7 @@ function InvoicesContent() {
                       )}
                     </div>
                   </td>
-                  <td className={styles.textRight}>₨ {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td className={`${styles.textRight} mono-text`}>₨ {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                   <td className={styles.textRight}>
                     <button
                       type="button"
@@ -684,7 +686,13 @@ function InvoicesContent() {
             })}
             {invoices.length === 0 && (
               <tr>
-                <td colSpan={6} className={styles.emptyState}>No invoices found</td>
+                <td colSpan={7} className={styles.emptyState}>
+                  <div className={styles.emptyStateInner}>
+                    <div className={styles.emptyStateIcon}><FileText size={20} weight="duotone" /></div>
+                    <div className={styles.emptyStateTitle}>No invoices found</div>
+                    <div className={styles.emptyStateDesc}>Create your first invoice to get started.</div>
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>

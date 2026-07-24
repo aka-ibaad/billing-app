@@ -52,18 +52,12 @@
   transform: translateX(4px);
 }
 
-.card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-}
-
-.warning::before { background: var(--color-chart-amber); }
-.positive::before { background: var(--color-chart-emerald); }
-.negative::before { background: var(--color-chart-expense); }
+/* Status is communicated through the icon color and a soft full-card tint
+   instead of a left accent stripe, which reads as a generic/templated
+   pattern at a glance. */
+.warning { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.18); }
+.positive { background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.18); }
+.negative { background: rgba(239, 68, 68, 0.06); border-color: rgba(239, 68, 68, 0.18); }
 
 .iconBox {
   width: 32px;

@@ -1,8 +1,9 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 1000;
 }
 
@@ -13,10 +14,15 @@
   bottom: 0;
   width: 100%;
   max-width: 400px;
-  background: var(--color-bg-secondary);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-left: 1px solid var(--color-border);
+  /* --color-bg-secondary is only ~2% opaque in dark theme, which left this
+     panel nearly see-through and made its text hard to read over page
+     content. --color-dropdown-bg is the same solid glass treatment already
+     used by CommandPalette/GlobalSearch (0.85-0.95 opacity), so swap to it
+     for consistency and legibility. */
+  background: var(--color-dropdown-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid var(--color-dropdown-border);
   box-shadow: var(--shadow-glass), -8px 0 32px rgba(0,0,0,0.2);
   z-index: 1001;
   display: flex;

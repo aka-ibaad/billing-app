@@ -2,12 +2,19 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import { MagnifyingGlass, Bell } from '@phosphor-icons/react';
 import { useAppData } from '@/context/AppDataContext';
 import styles from './TopBar.module.css';
 
 export default function TopBar() {
   const { settings, notifications, invoices } = useAppData();
+  const pathname = usePathname();
+  // The full "Good Evening, Business Name" greeting is dashboard-only
+  // content — every other route already has its own page title, so
+  // repeating the greeting there was redundant and pushed real content
+  // below the fold. Other pages get a slim bar with just search + bell.
+  const isDashboard = pathname === '/';
   const [greeting, setGreeting] = useState('Good Morning ☀️');
   const [currentDate, setCurrentDate] = useState('');
 
@@ -38,27 +45,29 @@ export default function TopBar() {
   };
 
   return (
-    <header className={styles.topbar}>
-      <div className={styles.greetingSection}>
-        <motion.h1 
-          className={styles.greeting}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-          {greeting},
-          <br />
-          <span className={styles.greetingName}>{businessName}</span>
-        </motion.h1>
-        <motion.p 
-          className={styles.summary}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-        >
-          {currentDate} • {dueTodayCount === 0 ? 'No invoices due today.' : `You have ${dueTodayCount} invoice${dueTodayCount === 1 ? '' : 's'} due today.`}
-        </motion.p>
-      </div>
+    <header className={`${styles.topbar} ${isDashboard ? '' : styles.topbarCompact}`}>
+      {isDashboard && (
+        <div className={styles.greetingSection}>
+          <motion.h1
+            className={styles.greeting}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          >
+            {greeting},
+            <br />
+            <span className={styles.greetingName}>{businessName}</span>
+          </motion.h1>
+          <motion.p
+            className={styles.summary}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+          >
+            {currentDate} • {dueTodayCount === 0 ? 'No invoices due today.' : `You have ${dueTodayCount} invoice${dueTodayCount === 1 ? '' : 's'} due today.`}
+          </motion.p>
+        </div>
+      )}
 
       <div className={styles.actionsSection}>
         <div className={styles.searchWrapper} onClick={openSearch}>

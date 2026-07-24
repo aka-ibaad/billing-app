@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash } from '@phosphor-icons/react';
+import { Trash, Users } from '@phosphor-icons/react';
 import { TopClientsChart } from '@/components/dashboard/DetailedCharts';
 import styles from './page.module.css';
 
@@ -192,7 +192,13 @@ function ClientsContent() {
               <tbody>
                 {filteredClients.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className={styles.emptyState}>No clients found.</td>
+                    <td colSpan={5} className={styles.emptyState}>
+                      <div className={styles.emptyStateInner}>
+                        <div className={styles.emptyStateIcon}><Users size={20} weight="duotone" /></div>
+                        <div className={styles.emptyStateTitle}>No clients found</div>
+                        <div className={styles.emptyStateDesc}>Add a client to start billing them.</div>
+                      </div>
+                    </td>
                   </tr>
             ) : (
               filteredClients.map(client => {

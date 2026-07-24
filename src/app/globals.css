@@ -75,6 +75,8 @@
   
   --dark-chart-expense: #ef4444; /* Red */
   --dark-chart-revenue: #3b82f6; /* Blue */
+  --dark-chart-blue: #3b82f6;    /* Blue (alias target used by --color-chart-blue) */
+  --dark-chart-red: #f87171;     /* Red (alias target used by --color-chart-red) */
   --dark-chart-emerald: #10b981; /* Success */
   --dark-chart-amber: #f59e0b;   /* Warning */
   --dark-chart-purple: #8b5cf6;  /* Info */
@@ -381,15 +383,23 @@ button:active {
   display: flex;
   flex-direction: column;
   min-width: 0; /* Prevents overflow */
-  margin-left: 312px; 
+  margin-left: 312px;
   background-color: transparent;
   min-height: 100vh;
   position: relative;
   z-index: 1;
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Reserve room so the fixed FloatingQuickCreate button (56px, inset 48px)
+     never sits on top of the last row of real page content. */
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
 }
 
-@media (max-width: 1024px) {
+/* Must match Navigation's own breakpoint (768px, in Navigation.module.css)
+   where the sidebar switches from a fixed-position 260px panel to the
+   mobile bottom nav. This used to be 1024px, leaving a 769-1024px gap
+   where the sidebar was still fixed/floating but main-content had already
+   dropped its 312px reserved margin — content rendered underneath the
+   sidebar instead of beside it, reading as a broken, "stacked" header. */
+@media (max-width: 768px) {
   .main-content {
     margin-left: 0;
   }
@@ -401,8 +411,9 @@ button:active {
   }
   
   .main-content {
-    /* Leave room for bottom nav */
-    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    /* Leave room for the bottom nav and the floating quick-create button
+       (which sits at 84px-140px from the bottom on mobile). */
+    padding-bottom: calc(152px + env(safe-area-inset-bottom));
     width: 100%;
     max-width: 100vw;
   }

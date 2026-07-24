@@ -1,5 +1,6 @@
 .container {
-  max-width: 1200px;
+  max-width: 1800px;
+  width: 100%; /* flex-item auto-margin trap, see layout.tsx */
   margin: 0 auto;
   padding: 0 2rem;
 }
@@ -8,6 +9,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
   margin-bottom: 3rem;
 }
 

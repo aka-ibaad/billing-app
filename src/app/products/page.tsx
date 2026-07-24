@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppData } from '@/context/AppDataContext';
-import { Plus, Trash } from '@phosphor-icons/react';
+import { Plus, Trash, Package } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TopProductsChart } from '@/components/dashboard/DetailedCharts';
 import styles from './page.module.css';
@@ -52,7 +52,7 @@ function ProductsContent() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.headerText}>
           <h1 className={styles.title}>Products & Services</h1>
           <p style={{ color: 'var(--color-text-secondary)', marginTop: '8px' }}>
             Manage your catalogue for quick auto-calculation in invoices.
@@ -145,7 +145,13 @@ function ProductsContent() {
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan={4} className={styles.emptyState}>No products found. Create one to get started.</td>
+                <td colSpan={4} className={styles.emptyState}>
+                  <div className={styles.emptyStateInner}>
+                    <div className={styles.emptyStateIcon}><Package size={20} weight="duotone" /></div>
+                    <div className={styles.emptyStateTitle}>No products yet</div>
+                    <div className={styles.emptyStateDesc}>Add your catalogue to speed up invoice creation.</div>
+                  </div>
+                </td>
               </tr>
             ) : (
               products.map(product => (

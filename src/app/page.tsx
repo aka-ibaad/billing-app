@@ -186,7 +186,13 @@ export default function Dashboard() {
     return list.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()).slice(0, 5);
   }, [validInvoices, expenses]);
 
-  const MiniChartCard = ({ title, value, trend, sparkline, color, icon: Icon, delay, large }: any) => (
+  const MiniChartCard = ({ title, value, trend, sparkline, color, icon: Icon, delay, large }: any) => {
+    // SVG fragment IDs can't contain spaces: "gradient-Total Revenue" breaks
+    // the url(#gradient-Total Revenue) reference (the space is a token
+    // separator), so the fill silently falls back to solid black while the
+    // stroke (a plain color, no ID lookup) renders fine. Slugify instead.
+    const gradientId = `gradient-${title.replace(/\s+/g, '-')}`;
+    return (
     <motion.div
       className={`${styles.metricCard} ${large ? styles.metricCardLarge : ''}`}
       initial={{ opacity: 0, y: 20 }}
@@ -198,21 +204,23 @@ export default function Dashboard() {
         <div className={styles.metricIconWrapper}>
           <Icon size={20} weight="duotone" />
         </div>
-        <div className={styles.metricSparkline}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparkline}>
-              <defs>
-                <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="val" stroke={color} fillOpacity={1} fill={`url(#gradient-${title})`} strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {!large && (
+          <div className={styles.metricSparkline}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={sparkline}>
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" style={{ stopColor: color, stopOpacity: 0.3 }}/>
+                    <stop offset="95%" style={{ stopColor: color, stopOpacity: 0 }}/>
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="val" stroke={color} fillOpacity={1} fill={`url(#${gradientId})`} strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
-      <div>
+      <div className={styles.metricBody}>
         <div className={styles.metricTitle}>{title}</div>
         <div className={styles.metricValue}>
           {title.includes('Total') || title.includes('Invoices') ? value.toLocaleString() : `₨ ${value.toLocaleString(undefined, {minimumFractionDigits: 0})}`}
@@ -226,8 +234,24 @@ export default function Dashboard() {
           <span className={styles.metricSub}>vs previous {filter}</span>
         </div>
       </div>
+      {large && (
+        <div className={styles.metricChartLarge}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={sparkline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" style={{ stopColor: color, stopOpacity: 0.35 }}/>
+                  <stop offset="95%" style={{ stopColor: color, stopOpacity: 0 }}/>
+                </linearGradient>
+              </defs>
+              <Area type="monotone" dataKey="val" stroke={color} fillOpacity={1} fill={`url(#${gradientId})`} strokeWidth={2.5} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </motion.div>
-  );
+    );
+  };
 
   return (
     <div className={styles.dashboard}>

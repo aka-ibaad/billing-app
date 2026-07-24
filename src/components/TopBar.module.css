@@ -7,6 +7,17 @@
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
+/* Non-dashboard pages already have their own title + description, so the
+   full greeting is dropped; this keeps just the search + notifications
+   utility bar, sized down so it doesn't compete with the page's own
+   header directly below it. */
+.topbarCompact {
+  justify-content: flex-end;
+  padding: var(--space-3) 0;
+  margin-bottom: var(--space-3);
+  border-bottom: none;
+}
+
 .greetingSection {
   display: flex;
   flex-direction: column;

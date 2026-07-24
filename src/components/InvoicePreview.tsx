@@ -24,7 +24,11 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
   
   const format = invoice.format || 'horizontal';
   const wrapperClass = format === 'vertical' ? styles.documentVertical : styles.documentHorizontal;
-  
+
+  // The document is designed at a fixed "true" width (matching the .documentHorizontal /
+  // .documentVertical max-width in CSS) so print proportions stay correct. When the preview
+  // pane is narrower than that, we scale the whole card down to fit instead of letting
+  // overflow:hidden clip the header/table content.
   // Use provided totals or calculate basic subtotal
   const tSub = totals?.subtotal ?? (subtotal || 0);
   const tDiscount = totals?.discountAmount ?? 0;
@@ -70,7 +74,6 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
   return (
     <div className={styles.documentWrapper}>
       <div className={`${styles.document} ${wrapperClass}`}>
-        
         {watermarkStyle && (
           <div className={styles.logoWatermarkContainer}>
             <img 

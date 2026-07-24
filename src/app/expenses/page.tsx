@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppData } from '@/context/AppDataContext';
-import { Plus, Trash } from '@phosphor-icons/react';
+import { Plus, Trash, Receipt } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 
@@ -56,7 +56,7 @@ function ExpensesContent() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.headerText}>
           <h1 className={styles.title}>Expenses & Outgoing</h1>
           <p style={{ color: 'var(--color-text-secondary)', marginTop: '8px' }}>
             Track outsourced work, material costs, and other business expenses.
@@ -185,7 +185,13 @@ function ExpensesContent() {
           <tbody>
             {expenses.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.emptyState}>No expenses logged yet.</td>
+                <td colSpan={7} className={styles.emptyState}>
+                  <div className={styles.emptyStateInner}>
+                    <div className={styles.emptyStateIcon}><Receipt size={20} weight="duotone" /></div>
+                    <div className={styles.emptyStateTitle}>No expenses logged yet</div>
+                    <div className={styles.emptyStateDesc}>Track outsourced work and material costs as you spend.</div>
+                  </div>
+                </td>
               </tr>
             ) : (
               [...expenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(expense => (

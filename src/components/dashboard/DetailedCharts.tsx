@@ -32,11 +32,19 @@ const getInvoiceTotal = (inv: any) => {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', padding: '12px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+      <div style={{
+        background: 'var(--color-dropdown-bg)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid var(--color-dropdown-border)',
+        padding: '12px',
+        borderRadius: '8px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+      }}>
         <p style={{ margin: '0 0 8px 0', fontWeight: 600, color: 'var(--color-text-primary)' }}>{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} style={{ margin: 0, color: entry.color || 'var(--color-text-primary)', fontSize: '13px' }}>
-            {entry.name}: {typeof entry.value === 'number' ? `₨ ${entry.value.toLocaleString()}` : entry.value}
+            {entry.name}: {typeof entry.value === 'number' ? `Rs ${entry.value.toLocaleString()}` : entry.value}
           </p>
         ))}
       </div>
@@ -101,7 +109,11 @@ export const RevenueExpenseChart = ({ invoices, expenses, filter, compact }: Cha
         if(match) match.Expenses += exp.amount;
       }
     });
-    return filter === '30D' ? res.reverse() : res;
+    // `res` is already built oldest-to-newest above (weekOffset counts down
+    // to the current week), so no reversal is needed — the chart previously
+    // reversed it, which plotted weeks right-to-left (Week 5, 4, 3, 2, 1)
+    // instead of the expected chronological Week 1 -> Week 5 order.
+    return res;
   }, [invoices, expenses, filter]);
 
   return (
@@ -111,18 +123,22 @@ export const RevenueExpenseChart = ({ invoices, expenses, filter, compact }: Cha
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <defs>
+              {/* stopColor set via style, not the bare attribute: SVG gradient
+                  stops don't reliably resolve CSS custom properties passed as
+                  a raw stop-color attribute and silently fall back to black
+                  at paint time. Invisible on dark backgrounds, glaring on light. */}
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-chart-blue)" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="var(--color-chart-blue)" stopOpacity={0}/>
+                <stop offset="5%" style={{ stopColor: 'var(--color-chart-blue)', stopOpacity: 0.8 }}/>
+                <stop offset="95%" style={{ stopColor: 'var(--color-chart-blue)', stopOpacity: 0 }}/>
               </linearGradient>
               <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-chart-expense)" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="var(--color-chart-expense)" stopOpacity={0}/>
+                <stop offset="5%" style={{ stopColor: 'var(--color-chart-expense)', stopOpacity: 0.8 }}/>
+                <stop offset="95%" style={{ stopColor: 'var(--color-chart-expense)', stopOpacity: 0 }}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₨${val/1000}k`} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `${val/1000}k`} />
             <RechartsTooltip content={<CustomTooltip />} />
             <Area type="monotone" dataKey="Revenue" stroke="var(--color-chart-blue)" fillOpacity={1} fill="url(#colorRevenue)" strokeWidth={2} />
             <Area type="monotone" dataKey="Expenses" stroke="var(--color-chart-expense)" fillOpacity={1} fill="url(#colorExpenses)" strokeWidth={2} />
@@ -159,7 +175,7 @@ export const MonthlyRevenueChart = ({ invoices, compact }: ChartProps) => {
           <BarChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₨${val/1000}k`} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `${val/1000}k`} />
             <RechartsTooltip content={<CustomTooltip />} />
             <Bar dataKey="Revenue" fill="var(--color-chart-purple)" radius={[4, 4, 0, 0]} barSize={32} />
           </BarChart>
@@ -264,7 +280,7 @@ export const DailySalesChart = ({ invoices, compact }: ChartProps) => {
           <LineChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₨${val/1000}k`} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `${val/1000}k`} />
             <RechartsTooltip content={<CustomTooltip />} />
             <Line type="monotone" dataKey="Sales" stroke="var(--color-chart-emerald)" strokeWidth={3} dot={{ r: 4, fill: "var(--color-bg-secondary)", strokeWidth: 2 }} activeDot={{ r: 6 }} />
           </LineChart>
@@ -378,7 +394,7 @@ export const IncomeProfitChart = ({ invoices, expenses, filter, compact }: Chart
           <ComposedChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-subtle)" />
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `₨${val/1000}k`} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} dx={-10} tickFormatter={(val) => `${val/1000}k`} />
             <RechartsTooltip content={<CustomTooltip />} />
             <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px', color: 'var(--color-text-primary)' }} />
             <Bar dataKey="Income" fill="var(--color-chart-emerald)" radius={[4, 4, 0, 0]} barSize={24} />

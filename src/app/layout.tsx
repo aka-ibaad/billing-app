@@ -80,7 +80,16 @@ export default function RootLayout({
             <div className="app-layout">
               <Navigation />
               <main className="main-content">
-                <div style={{ padding: '0 var(--space-8)', maxWidth: '1400px', margin: '0 auto' }}>
+                {/* width: 100% is required here, not optional: main-content
+                    is display:flex flex-direction:column, so this div is a
+                    flex item. margin:0 auto on a flex item's cross axis
+                    doesn't center-within-full-width like it does in normal
+                    block flow — flexbox gives auto margins priority over
+                    stretch, so the item shrinks to fit its content (here,
+                    just the greeting + search bar) and centers that narrow
+                    box instead of filling the row. width:100% gives it a
+                    definite size so the auto margins have nothing to do. */}
+                <div style={{ width: '100%', padding: '0 var(--space-8)', maxWidth: '1800px', margin: '0 auto' }}>
                   <TopBar />
                 </div>
                 {children}

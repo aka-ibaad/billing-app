@@ -202,21 +202,21 @@ export default function CommandPalette() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div 
-            className={styles.backdrop}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setIsOpen(false)}
-          />
-          <motion.div 
+        <motion.div
+          className={styles.backdrop}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={() => setIsOpen(false)}
+        >
+          <motion.div
             className={styles.paletteContainer}
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className={styles.searchHeader}>
               <MagnifyingGlass size={20} weight="bold" className={styles.searchIcon} />
@@ -275,7 +275,7 @@ export default function CommandPalette() {
               )}
             </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );
