@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SquaresFour, FileText, Users, ChartLineUp, Receipt, Gear, Sparkle, Crown, List, X } from '@phosphor-icons/react';
+import { SquaresFour, FileText, Users, ChartLineUp, Receipt, Gear, Sparkle, Crown, List, X, Devices } from '@phosphor-icons/react';
 import styles from './Navigation.module.css';
 import { useAppData } from '@/context/AppDataContext';
 
@@ -20,6 +20,7 @@ const navItems = [
   { id: 'products', path: '/products', label: 'Products', icon: ChartLineUp, desktopOnly: true },
   { id: 'records', path: '/records', label: 'Records', icon: FileText, desktopOnly: true },
   { id: 'insights', path: '/insights', label: 'Insights', icon: Sparkle, desktopOnly: true },
+  { id: 'platforms', path: '/platforms', label: 'Phone & Web', icon: Devices, desktopOnly: true },
 ];
 
 // Mobile floating pill nav: only the 4 most-used destinations get a slot
@@ -38,6 +39,7 @@ const mobileMoreItems = [
   { id: 'products', path: '/products', label: 'Products', icon: ChartLineUp },
   { id: 'records', path: '/records', label: 'Records', icon: FileText },
   { id: 'insights', path: '/insights', label: 'Insights', icon: Sparkle },
+  { id: 'platforms', path: '/platforms', label: 'Phone & Web', icon: Devices },
   { id: 'settings', path: '/settings', label: 'Settings', icon: Gear },
 ];
 
