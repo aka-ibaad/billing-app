@@ -278,3 +278,24 @@
     padding-right: var(--space-4);
   }
 }
+
+@media (max-width: 767px) {
+  .container {
+    padding: var(--space-6) var(--space-4);
+  }
+  .formCard {
+    padding: var(--space-5);
+  }
+  .formGroup {
+    min-width: 0;
+  }
+  .formActions {
+    width: 100%;
+    justify-content: stretch;
+    flex-direction: column;
+  }
+  .formActions button {
+    width: 100%;
+    justify-content: center;
+  }
+}

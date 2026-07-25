@@ -154,7 +154,7 @@ function ExpensesContent() {
             </div>
           </div>
 
-              <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div className={styles.formActions} style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
                 <button type="submit" className={styles.primaryButton}>Save Expense</button>
               </div>
               </form>

@@ -613,6 +613,11 @@
        spacing scale used elsewhere. */
     row-gap: var(--space-4);
   }
+  
+  .builderHeader .formGroup {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 
   .itemsHeader {
     display: none;
@@ -653,6 +658,18 @@
     flex: 1;
     text-align: center;
     justify-content: center;
+  }
+
+  .container {
+    padding: var(--space-6) var(--space-4);
+  }
+  
+  .builderForm {
+    padding: var(--space-5);
+  }
+  
+  .itemsSection {
+    padding: var(--space-5);
   }
 }
 

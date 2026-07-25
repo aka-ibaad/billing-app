@@ -634,12 +634,12 @@ function InvoicesContent() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
           <select
             className={styles.input}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ width: '160px' }}
+            style={{ flex: '1 1 140px', minWidth: 0 }}
           >
             <option value="All">All Statuses</option>
             <option value="Draft">Draft</option>
@@ -652,7 +652,7 @@ function InvoicesContent() {
             className={styles.input} 
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{ width: 'auto' }}
+            style={{ flex: '1 1 140px', minWidth: 0 }}
           >
             <option value="date-desc">Newest First</option>
             <option value="date-asc">Oldest First</option>
