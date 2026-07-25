@@ -508,7 +508,7 @@
   display: grid;
   /* auto-fit instead of a fixed 2 columns so wide screens fit 3-4 charts
      per row instead of forcing an extra row of scrolling. */
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: var(--space-6);
   margin-bottom: var(--space-8);
 }
