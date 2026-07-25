@@ -552,6 +552,19 @@
   .dashboard {
     padding: 0 var(--space-4) var(--space-8) var(--space-4);
   }
+  .chartCard {
+    padding: var(--space-3);
+  }
+  .invoicesTable th {
+    padding: 0 var(--space-2) var(--space-2) var(--space-2);
+  }
+  .invoicesTable td {
+    padding: var(--space-2);
+  }
+  .sectionTitle {
+    font-size: var(--text-base);
+    margin-bottom: var(--space-3);
+  }
 }
 
 /* --- Deliveries Widget --- */
