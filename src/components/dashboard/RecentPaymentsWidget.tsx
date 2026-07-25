@@ -54,7 +54,7 @@ export default function RecentPaymentsWidget() {
                 </div>
               </div>
               <div className={styles.amountBox}>
-                <div className={styles.amount}>+₨ {payment.amount.toLocaleString()}</div>
+                <div className={styles.amount}>+Rs {payment.amount.toLocaleString()}</div>
                 <div className={styles.badge}>
                   <CheckCircle size={12} weight="fill" />
                   Paid

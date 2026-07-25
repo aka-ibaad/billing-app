@@ -90,7 +90,7 @@ function ProductsContent() {
               />
             </div>
             <div className={styles.formGroup}>
-              <label>Default Rate (₨)</label>
+              <label>Default Rate (Rs)</label>
               <input 
                 type="number" 
                 min="0"
@@ -159,7 +159,7 @@ function ProductsContent() {
                   <td className="sans-text" style={{ fontWeight: 500 }}>{product.name}</td>
                   <td>{product.description}</td>
                   <td className={`${styles.textRight} mono-text`}>
-                    ₨ {product.defaultRate.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    Rs {product.defaultRate.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
                   <td className={styles.textRight}>
                     <button

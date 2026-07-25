@@ -95,7 +95,7 @@ function ExpensesContent() {
               />
             </div>
             <div className={styles.formGroup}>
-              <label>Amount (₨)</label>
+              <label>Amount (Rs)</label>
               <input 
                 type="number" 
                 min="0"
@@ -206,7 +206,7 @@ function ExpensesContent() {
                     </span>
                   </td>
                   <td className={`${styles.textRight} mono-text`}>
-                    ₨ {expense.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    Rs {expense.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
                   <td className={styles.textRight} style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                     <button className={styles.primaryButton} style={{ padding: '6px 12px', fontSize: '10px' }} onClick={() => {

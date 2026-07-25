@@ -162,7 +162,7 @@ export default function CommandPalette() {
       allGroups.push({
         title: 'Products',
         items: filteredProducts.slice(0, 5).map(p => ({
-          id: `prod-${p.id}`, icon: Package, title: p.name, subtitle: `₨ ${p.defaultRate}`,
+          id: `prod-${p.id}`, icon: Package, title: p.name, subtitle: `Rs ${p.defaultRate}`,
           onSelect: () => closeAndRun(() => router.push('/products'))
         }))
       });
@@ -174,7 +174,7 @@ export default function CommandPalette() {
       allGroups.push({
         title: 'Expenses',
         items: filteredExpenses.slice(0, 5).map(e => ({
-          id: `exp-${e.id}`, icon: Receipt, title: e.payeeName, subtitle: `₨ ${e.amount} - ${e.description}`,
+          id: `exp-${e.id}`, icon: Receipt, title: e.payeeName, subtitle: `Rs ${e.amount} - ${e.description}`,
           onSelect: () => closeAndRun(() => router.push('/expenses'))
         }))
       });

@@ -18,8 +18,14 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 99;
+  /* Must stay BELOW .fabMenu/.fabMain's z-index (2) — both live inside
+     .fabContainer's own stacking context (position:fixed + z-index:100),
+     so this only needs to beat the page content behind it, not its
+     siblings. It was previously z-index:99, which beat the menu/button's
+     z-index:1 and painted the dim+blur on top of them, blocking clicks
+     on the quick-create actions even after they got their own
+     position+z-index. */
+  z-index: 1;
 }
 
 .fabMenu {
@@ -28,6 +34,14 @@
   gap: var(--space-2);
   align-items: flex-end;
   margin-bottom: var(--space-2);
+  /* Needed alongside z-index below: .fabBackdrop is position:fixed with
+     z-index:99, and within fabContainer's own stacking context that beats
+     any sibling that doesn't also declare a position + z-index of its
+     own — even ones that come later in the DOM. Without this, the
+     backdrop's dim + blur painted OVER the menu and the FAB button
+     itself, not just the page behind them. */
+  position: relative;
+  z-index: 2;
 }
 
 .fabMenuItem {
@@ -50,7 +64,6 @@
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
 }
 
 .fabMenuIcon {
@@ -66,7 +79,6 @@
   box-shadow: var(--shadow-md);
   transition: all 0.2s var(--ease-custom);
   backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
 }
 
 .fabMenuItem:hover .fabMenuIcon {
@@ -88,6 +100,25 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  /* Same fix as .fabMenu above: without a position + z-index of its own,
+     this button sat underneath .fabBackdrop's z-index:99 once the menu
+     was open, so the trigger button itself got dimmed and blurred along
+     with the rest of the page instead of staying sharp above the dim. */
+  position: relative;
+  z-index: 2;
+}
+
+/* Wraps the Plus icon for the open/close rotate animation. SVGs default
+   to display:inline with baseline vertical-align, which reserves a few
+   px of descender space below the glyph — that gap made this wrapper's
+   box taller than the icon itself, so .fabMain's flex centering was
+   centering a box that wasn't actually hugging the icon, and the Plus
+   read as sitting slightly above center. Flexing this wrapper collapses
+   that gap so the icon's own box is what gets centered. */
+.fabIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fabMain:hover {
@@ -102,7 +133,38 @@
 /* --- MOBILE FAB --- */
 @media (max-width: 768px) {
   .fabContainer {
+    /* Clears the floating pill nav: space-3 (12px) margin + 52px bar
+       height, plus a little breathing room, so the FAB never sits flush
+       against it. */
     bottom: calc(84px + env(safe-area-inset-bottom));
     right: var(--space-4);
+  }
+
+  /* Matches the scaled-down mobile nav (52px pill / 44px center button)
+     — at the old 56px the FAB read as bigger than every tab in the bar
+     sitting right above it. */
+  .fabMain {
+    width: 46px;
+    height: 46px;
+  }
+
+  .fabMain svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .fabMenuIcon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .fabMenuIcon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .fabMenuLabel {
+    font-size: 12px;
+    padding: 5px 10px;
   }
 }

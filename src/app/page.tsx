@@ -6,6 +6,7 @@ import { useAppData } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 import RecentPaymentsWidget from '@/components/dashboard/RecentPaymentsWidget';
+import PullToRefresh from '@/components/PullToRefresh';
 import {
   Wallet, WarningCircle, CheckCircle, Clock, TrendUp, TrendDown,
   Users, ChartLineUp, Receipt, FileText, ArrowRight, Truck
@@ -17,7 +18,7 @@ import {
 type FilterType = '7D' | '30D' | '12M';
 
 export default function Dashboard() {
-  const { invoices, expenses, clients, products, updateOrderStatus } = useAppData();
+  const { invoices, expenses, clients, products, updateOrderStatus, refreshFromStorage } = useAppData();
   const [filter, setFilter] = useState<FilterType>('30D');
 
   const validInvoices = useMemo(() => invoices.filter(i => i.documentType !== 'quotation'), [invoices]);
@@ -223,7 +224,7 @@ export default function Dashboard() {
       <div className={styles.metricBody}>
         <div className={styles.metricTitle}>{title}</div>
         <div className={styles.metricValue}>
-          {title.includes('Total') || title.includes('Invoices') ? value.toLocaleString() : `₨ ${value.toLocaleString(undefined, {minimumFractionDigits: 0})}`}
+          {title.includes('Total') || title.includes('Invoices') ? value.toLocaleString() : `Rs ${value.toLocaleString(undefined, {minimumFractionDigits: 0})}`}
         </div>
         <div className={styles.metricFooter}>
           <div className={`${styles.trendBadge} ${trend.type === 'positive' ? styles.positive : trend.type === 'negative' ? styles.negative : styles.neutral}`}>
@@ -254,6 +255,7 @@ export default function Dashboard() {
   };
 
   return (
+    <PullToRefresh onRefresh={refreshFromStorage}>
     <div className={styles.dashboard}>
       <div className={styles.filterContainer}>
         <div className={styles.filterTabs}>
@@ -328,8 +330,8 @@ export default function Dashboard() {
         transition={{ delay: 0.5 }}
       >
         <span><strong>Today's Stats:</strong></span>
-        <span>Revenue: <strong>₨ {todayStats.revenue.toLocaleString()}</strong></span>
-        <span>Expenses: <strong>₨ {todayStats.expenses.toLocaleString()}</strong></span>
+        <span>Revenue: <strong>Rs {todayStats.revenue.toLocaleString()}</strong></span>
+        <span>Expenses: <strong>Rs {todayStats.expenses.toLocaleString()}</strong></span>
         <span>Payments: <strong>{todayStats.payments}</strong></span>
         <span>Invoices Created: <strong>{todayStats.invoicesCreated}</strong></span>
         <span>Clients Added: <strong>{todayStats.clientsAdded}</strong></span>
@@ -440,7 +442,7 @@ export default function Dashboard() {
                             </div>
                           </div>
                         </td>
-                        <td style={{ fontWeight: 600, fontSize: '13px' }}>₨ {getInvoiceTotal(inv).toLocaleString()}</td>
+                        <td style={{ fontWeight: 600, fontSize: '13px' }}>Rs {getInvoiceTotal(inv).toLocaleString()}</td>
                         <td>
                           <span className={`${styles.statusBadge} ${styles[`status${inv.status}`]}`}>
                             {inv.status}
@@ -460,5 +462,6 @@ export default function Dashboard() {
       </div>
 
     </div>
+    </PullToRefresh>
   );
 }

@@ -3,23 +3,29 @@ import TopBar from '@/components/TopBar';
 import CommandPalette from '@/components/CommandPalette';
 import NotificationCenter from '@/components/NotificationCenter';
 import FloatingQuickCreate from '@/components/FloatingQuickCreate';
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 import { AppDataProvider } from '@/context/AppDataContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans, Space_Mono } from 'next/font/google';
+import { Poppins, Oswald } from 'next/font/google';
 import './globals.css';
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+// Poppins/Oswald pairing: Poppins carries body text and UI chrome (labels,
+// inputs, buttons) since it stays readable at small sizes; Oswald is
+// reserved for headings and other display-weight text (see the h1-h6 and
+// .fontHeading rules in globals.css) where its condensed, bold character
+// gives the page titles and section headers more visual weight.
+const poppins = Poppins({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-sans-loaded',
   display: 'swap',
 });
 
-const spaceMono = Space_Mono({
+const oswald = Oswald({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-mono-loaded',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-heading-loaded',
   display: 'swap',
 });
 
@@ -52,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${plusJakartaSans.variable} ${spaceMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${poppins.variable} ${oswald.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -74,6 +80,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           <AppDataProvider>
+            <ServiceWorkerRegister />
             <CommandPalette />
             <NotificationCenter />
             <FloatingQuickCreate />

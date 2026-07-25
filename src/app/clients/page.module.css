@@ -53,7 +53,6 @@
 .addFormCard {
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
@@ -104,7 +103,17 @@
 }
 
 .formActions {
+  /* .addForm only defines 4 column tracks (1fr 1fr 2fr auto) for the 4
+     input fields, so this 5th grid item had no track of its own — it
+     wrapped into a new implicit row and landed back in column 1, which
+     is only as wide as the Company Name field. "Save Client" doesn't fit
+     that width on one line, and with border-radius: var(--radius-full)
+     on a button that's now taller than it is wide (from the wrapped
+     text), the button rendered as a near-circular blob instead of a
+     pill. Spanning the full row gives it real width to lay out in. */
+  grid-column: 1 / -1;
   display: flex;
+  justify-content: flex-end;
   gap: var(--space-3);
   padding-bottom: 2px; /* Align with inputs */
 }
@@ -118,6 +127,7 @@
   cursor: pointer;
   color: var(--color-text-primary);
   font-weight: 500;
+  white-space: nowrap;
   transition: all 0.2s var(--ease-custom);
 }
 
@@ -135,6 +145,7 @@
   cursor: pointer;
   border-radius: var(--radius-full);
   font-weight: 500;
+  white-space: nowrap;
   transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
 }
 
@@ -150,7 +161,6 @@
 .tableCard {
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
@@ -267,6 +277,189 @@
   color: var(--color-danger);
   background: rgba(239, 68, 68, 0.1);
 }
+
+.clickableRow {
+  cursor: pointer;
+}
+
+/* --- CLIENT DETAIL MODAL --- */
+.detailBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  z-index: 200;
+}
+
+.detailModal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-6);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.detailHeaderInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.detailAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #1d4ed8 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: var(--text-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.detailName {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detailSubtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.detailCloseBtn {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s var(--ease-custom);
+}
+
+.detailCloseBtn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
+.detailContactGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detailContactItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.detailContactIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.detailDivider {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: var(--space-5) 0 var(--space-4);
+}
+
+.detailInvoicesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.detailEmptyInvoices {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  padding: var(--space-4) 0;
+  text-align: center;
+}
+
+.detailInvoiceList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.detailInvoiceRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.detailInvoiceInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.detailInvoiceDate {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.detailStatusBadge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  justify-self: center;
+}
+
+.statusDraft { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
+.statusPending { background: rgba(255, 170, 0, 0.1); color: #ffaa00; }
+.statusPaid { background: rgba(51, 255, 153, 0.1); color: #00cc66; }
+.statusOverdue { background: rgba(255, 68, 68, 0.1); color: #ff4444; }
 
 /* Mobile Responsiveness */
 @media (max-width: 1024px) {

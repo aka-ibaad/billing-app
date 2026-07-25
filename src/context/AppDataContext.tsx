@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
 
 export type Client = {
   id: string;
@@ -56,6 +56,12 @@ export type Settings = {
   businessEmail: string;
   defaultTaxes: Tax[];
   logoUrl?: string;
+  // Separate from logoUrl on purpose: logoUrl is the business's brand mark
+  // (shown in the sidebar's top header and printed on invoices).
+  // avatarUrl is the signed-in user's own picture, shown on the admin
+  // card at the bottom of the sidebar — the two will diverge as soon as
+  // the app supports more than one user per business.
+  avatarUrl?: string;
   headerText?: string;
   ntnNumber?: string;
   phone?: string;
@@ -71,6 +77,11 @@ export type Settings = {
   watermarkCustomX?: number;
   watermarkCustomY?: number;
   watermarkRotation?: number;
+  // Drives the plan badge on the sidebar's admin card (see Navigation.tsx).
+  // Defaults to 'free' below so the badge always has a real value to
+  // render rather than being hardcoded — once a real upgrade flow exists,
+  // it can just call updateSettings({ plan: 'pro' }).
+  plan?: 'free' | 'pro';
 };
 
 export type Product = {
@@ -126,6 +137,7 @@ type AppDataContextType = {
   seedMockData: () => void;
   monthlyRevenueGoal: number;
   setMonthlyRevenueGoal: (value: number) => void;
+  refreshFromStorage: () => void;
 };
 
 const defaultSettings: Settings = {
@@ -140,6 +152,7 @@ const defaultSettings: Settings = {
   watermarkCustomX: 50,
   watermarkCustomY: 50,
   watermarkRotation: 0,
+  plan: 'free',
 };
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -154,8 +167,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [monthlyRevenueGoal, setMonthlyRevenueGoalState] = useState<number>(1000000);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  // Pulled out of the mount effect below so a pull-to-refresh gesture (or
+  // anything else) can re-sync state from localStorage on demand — there's
+  // no backend to hit, so re-reading local storage (in case another tab
+  // changed it) is the one legitimate "refresh" this app can do.
+  const loadFromStorage = useCallback(() => {
     const storedClients = localStorage.getItem('billing_clients');
     const storedInvoices = localStorage.getItem('billing_invoices');
     const storedSettings = localStorage.getItem('billing_settings');
@@ -171,7 +187,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
     if (storedNotifications) setNotifications(JSON.parse(storedNotifications));
     if (storedGoal) setMonthlyRevenueGoalState(JSON.parse(storedGoal));
-    
+
+    return { storedClients, storedInvoices };
+  }, []);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const { storedClients, storedInvoices } = loadFromStorage();
+
     // Fallback mock data if empty
     if (!storedClients && !storedInvoices) {
       const now = new Date();
@@ -408,7 +431,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
     // Notifications
     const mockNotifications: AppNotification[] = [
-      { id: 'n1', title: 'Payment Received', message: 'Globex Inc paid INV-2026-040 (₨ 1,500)', type: 'success', isRead: false, date: new Date(now.getTime() - 1000 * 60 * 5).toISOString(), link: '/invoices' },
+      { id: 'n1', title: 'Payment Received', message: 'Globex Inc paid INV-2026-040 (Rs 1,500)', type: 'success', isRead: false, date: new Date(now.getTime() - 1000 * 60 * 5).toISOString(), link: '/invoices' },
       { id: 'n2', title: 'Invoice Overdue', message: 'INV-2026-041 for Soylent Corp is 5 days overdue.', type: 'warning', isRead: false, date: new Date(now.getTime() - 1000 * 60 * 60 * 2).toISOString(), link: '/invoices' },
       { id: 'n3', title: 'New Client', message: 'Umbrella Corp was added to the system.', type: 'info', isRead: true, date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10).toISOString(), link: '/clients' }
     ];
@@ -459,6 +482,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addExpense, updateExpense, deleteExpense,
       markNotificationRead, clearNotifications, seedMockData,
       monthlyRevenueGoal, setMonthlyRevenueGoal,
+      refreshFromStorage: loadFromStorage,
     }}>
       {children}
     </AppDataContext.Provider>

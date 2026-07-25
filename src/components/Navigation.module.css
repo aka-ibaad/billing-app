@@ -14,7 +14,6 @@
   box-shadow: var(--shadow-glass), var(--inner-glow);
   z-index: 50;
   backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
 }
 
 .navTop {
@@ -25,28 +24,59 @@
 .logoSection {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2);
+  /* Wider than the nav pills/admin card's gap — at var(--space-3) the
+     avatar and business name read as cramped together compared to the
+     rest of the sidebar's spacing. */
+  gap: var(--space-4);
+  /* No background/border here — this sits flush against the sidebar
+     itself rather than looking like a separate card, unlike the admin
+     card at the bottom which is meant to read as a distinct, clickable
+     tile. Padding is kept (rather than 0) purely so the bigger avatar
+     doesn't visually collide with the sidebar's own edge/border. */
+  padding: var(--space-2) var(--space-2) var(--space-2) 0;
   margin-bottom: var(--space-6);
+  /* Anchors .planBadgeHeader (see below) — the sidebar is too narrow for
+     a fixed-width badge to share the flex row with the business name
+     without either stealing its space (forcing "Acme Corp" to truncate
+     to "Ac...") or wrapping the subtitle. Taking it out of flow entirely
+     avoids competing for that space at all. */
+  position: relative;
 }
 
 .logoMarkWrapper {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
+  /* Accent-colored gradient instead of a neutral grey tile — this is the
+     fallback avatar shown until a real logo/photo is uploaded in Settings
+     (Branding Elements), so it should read as a deliberate avatar design,
+     not an empty placeholder box with text in it. */
+  background: linear-gradient(135deg, var(--color-accent) 0%, #1d4ed8 100%);
   border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-sm);
+  /* Only meant to make the flat gradient fallback tile read as a
+     deliberate, "glowing" accent object. Once a real photo/logo is
+     uploaded, this glow has nothing to do with the image's own colors —
+     in light mode it shows up as a hazy blue halo behind the photo. See
+     .logoMarkWrapperPhoto below, which drops it for that case. */
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
   overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Applied alongside .logoMarkWrapper whenever a real image (avatarUrl or
+   logoUrl) is being shown instead of the gradient+initials fallback. */
+.logoMarkWrapperPhoto {
+  background: var(--color-bg-tertiary);
+  box-shadow: none;
 }
 
 .logoMark {
   font-weight: 700;
-  font-size: var(--text-sm);
-  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  color: #fff;
 }
 
 .logoImage {
@@ -59,6 +89,13 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.logoTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .logoText {
@@ -66,6 +103,9 @@
   font-size: var(--text-base);
   color: var(--color-text-primary);
   line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .logoSubtitle {
@@ -74,6 +114,13 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.planBadgeHeader {
+  position: absolute;
+  top: 0;
+  right: var(--space-2);
 }
 
 .navList {
@@ -143,16 +190,11 @@
   z-index: 1;
 }
 
-.activePillBorder {
-  position: absolute;
-  left: 0;
-  top: 10%;
-  bottom: 10%;
-  width: 3px;
-  background-color: var(--color-accent);
-  border-radius: 0 4px 4px 0;
-  z-index: 2;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.8);
+/* Only shown on the mobile bottom bar (see the max-width: 768px override
+   below), where .activePillBg is hidden and there's no other marker for
+   which tab is active besides icon color/fill. */
+.activeIndicator {
+  display: none;
 }
 
 .navBottom {
@@ -165,9 +207,17 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
+  /* Bigger padding to match the enlarged avatar below and give the card
+     more visual weight — it was previously the same tight padding as a
+     regular nav pill, which undersold it as the account/plan card. */
+  padding: var(--space-3);
+  /* A persistent card treatment instead of only appearing on hover — the
+     transparent-until-hovered version blended into the sidebar background
+     and read as plain text/icons rather than a distinct, clickable card. */
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   text-decoration: none;
   transition: all 0.2s;
   cursor: pointer;
@@ -175,22 +225,29 @@
 }
 
 .profileSection:hover {
-  background: var(--color-bg-tertiary);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
 }
 
 .profileAvatar {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
-  background: var(--color-bg-tertiary);
+  /* Same accent-gradient fallback treatment as .logoMarkWrapper, so the
+     two initials badges in the sidebar (top logo mark + this admin card
+     avatar) look like one consistent avatar system rather than two
+     different placeholder styles. */
+  background: linear-gradient(135deg, var(--color-accent) 0%, #1d4ed8 100%);
   border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  flex-shrink: 0;
 }
 
 .avatarImage {
@@ -215,6 +272,18 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  /* min-width: 0 lets this flex item shrink below its content's natural
+     size. Without it, a long business name has nowhere to go but wrap
+     ("Acme" / "Corp" on separate lines), which throws off the row's
+     vertical centering against the avatar and gear icon next to it. */
+  min-width: 0;
+}
+
+.profileNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .profileName {
@@ -222,11 +291,41 @@
   font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Free-tier default. Reads from settings.plan (see AppDataContext) so a
+   real upgrade flow can flip this to Pro just by updating that value. */
+.planBadge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.planBadgePro {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  border-color: transparent;
 }
 
 .profileCompany {
   font-size: 11px;
   color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settingsIcon {
@@ -239,106 +338,201 @@
   color: var(--color-text-primary);
 }
 
-/* --- MOBILE BOTTOM NAVIGATION --- */
+/* --- MOBILE FLOATING NAV --- */
+/* .mobileNav (defined below) fully replaces the desktop sidebar on phone
+   widths — simplest to just hide .nav outright here rather than reflow
+   its markup into a second, very differently-shaped component. */
+.mobileNav {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .nav {
-    position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: calc(64px + env(safe-area-inset-bottom));
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: flex-start;
-    padding: 0 var(--space-2) env(safe-area-inset-bottom) var(--space-2);
-    border-radius: 0;
-    border: none;
-    border-top: 1px solid var(--color-border-subtle);
-    z-index: 100;
-    background-color: var(--color-bg-sidebar);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
-  }
-
-  .navTop {
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-around;
-  }
-
-  .logoSection {
     display: none;
   }
 
-  .navList {
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-between;
-    gap: 0;
-  }
-
-  .navItem {
-    flex: 1;
+  .mobileNav {
     display: flex;
-    justify-content: center;
-  }
-
-  .navPill {
-    flex-direction: column;
-    padding: 8px 0;
-    gap: 4px;
-    font-size: 10px;
-    width: 100%;
     align-items: center;
-    border-radius: 0;
-  }
-
-  /* Only show the first 5 items on mobile to prevent squishing */
-  .navItem:nth-child(n+6) {
-    display: none;
-  }
-
-  .navBottom {
-    display: none; /* Hide profile on bottom bar */
-  }
-
-  .activePillBg {
-    display: none; /* Remove background pill on mobile */
-  }
-
-  .activePillBorder {
+    justify-content: space-around;
+    position: fixed;
     left: 50%;
-    top: 0;
-    bottom: auto;
-    width: 24px;
-    height: 3px;
-    margin-left: -12px;
-    border-radius: 0 0 4px 4px;
+    bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    width: calc(100% - var(--space-8));
+    max-width: 320px;
+    height: 52px;
+    padding: 0 var(--space-1);
+    background: var(--color-bg-sidebar);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-full);
+    /* Classic iOS frosted-glass recipe: blur + a saturation boost so
+       colors showing through the translucent layer read as vivid rather
+       than washed-out gray, plus a bright top edge as if catching light —
+       same idea as UIVisualEffectView materials. */
+    box-shadow: var(--shadow-glass), 0 10px 28px rgba(0, 0, 0, 0.16);
+    border-top-color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(24px) saturate(180%);
+    z-index: 100;
   }
 
-  .linkLabel {
-    font-size: 10px;
+  .mobileNavItem {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    background: transparent;
+    border: none;
+    flex-shrink: 0;
+    transition: all 0.15s var(--ease-custom);
   }
 
-  /* Disable hover effects on mobile */
-  @media (hover: none) {
-    .navPill:hover {
-      background-color: transparent;
-      color: var(--color-text-secondary);
-    }
-    .navPill.active:hover {
-      color: var(--color-accent);
-    }
-    .navPill:hover .iconWrapper {
-      transform: none;
-    }
+  /* Instant press feedback on tap — fixes the exact gap flagged in the
+     mobile audit, where nav items (Links, not <button>s) got nothing
+     from the global `button:active` rule and hover is disabled on touch
+     anyway. This fires on press, same as .mobileNavCenter below. */
+  .mobileNavItem:active {
+    transform: scale(0.88);
+    background: var(--color-bg-tertiary);
+  }
+
+  .mobileNavItemActive {
+    color: var(--color-accent);
+    background: var(--color-bg-tertiary);
+  }
+
+  .mobileNavCenter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-full);
+    /* Dashboard is the one tab that's always visually prominent here,
+       not just on-active — it's the "home" anchor. Sized up and colored,
+       but seated in the same row as the other icons (not raised above
+       the bar) so it reads as part of the pill, not a separate FAB. */
+    background: linear-gradient(135deg, var(--color-accent) 0%, #1d4ed8 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    flex-shrink: 0;
+    transition: transform 0.15s var(--ease-spring);
+  }
+
+  .mobileNavCenter:active {
+    transform: scale(0.92);
   }
 
   .desktopOnly {
     display: none !important;
+  }
+}
+
+/* --- MOBILE "MORE" SHEET --- */
+/* Products / Records / Insights / Settings live here instead of crowding
+   the floating pill — reached via the hamburger slot in .mobileNav. */
+@media (max-width: 768px) {
+  .moreBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 149;
+  }
+
+  .moreSheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 150;
+    background: var(--color-bg-primary);
+    border-top: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: var(--space-5) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.18);
+  }
+
+  .moreSheetHandle {
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-full);
+    background: var(--color-border-strong);
+    margin: 0 auto var(--space-4);
+  }
+
+  .moreSheetHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+
+  .moreSheetTitle {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary);
+  }
+
+  .moreSheetClose {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+  }
+
+  .moreGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-3);
+  }
+
+  .moreGridItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    border-radius: var(--radius-lg);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    transition: background 0.15s var(--ease-custom);
+  }
+
+  .moreGridItem:active {
+    background: var(--color-bg-tertiary);
+  }
+
+  .moreGridIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+  }
+
+  .moreGridIconActive {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .moreGridLabel {
+    font-size: 11px;
+    font-weight: 500;
   }
 }
 

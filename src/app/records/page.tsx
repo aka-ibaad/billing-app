@@ -89,15 +89,15 @@ export default function RecordsPage() {
       <div className={styles.summaryCards}>
         <div className={styles.card}>
           <span className={styles.cardLabel}>Total Billed</span>
-          <span className={styles.cardValue}>₨ {summary.totalBilled.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+          <span className={styles.cardValue}>Rs {summary.totalBilled.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
         </div>
         <div className={styles.card}>
           <span className={styles.cardLabel}>Total Paid</span>
-          <span className={styles.cardValue}>₨ {summary.totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+          <span className={styles.cardValue}>Rs {summary.totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
         </div>
         <div className={styles.card}>
           <span className={styles.cardLabel}>Outstanding</span>
-          <span className={styles.cardValue}>₨ {summary.totalOutstanding.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+          <span className={styles.cardValue}>Rs {summary.totalOutstanding.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
         </div>
         <div className={styles.card}>
           <span className={styles.cardLabel}>Invoices</span>
@@ -153,7 +153,7 @@ export default function RecordsPage() {
                         {inv.status}
                       </span>
                     </td>
-                    <td className={styles.textRight}>₨ {inv.calculatedTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td className={styles.textRight}>Rs {inv.calculatedTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                   </tr>
                 );
               })

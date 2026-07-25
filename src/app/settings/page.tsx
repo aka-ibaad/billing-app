@@ -15,6 +15,7 @@ export default function SettingsPage() {
     businessEmail: '',
     businessAddress: '',
     logoUrl: '',
+    avatarUrl: '',
     headerText: '',
     ntnNumber: '',
     footerText: '',
@@ -34,6 +35,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [uploadError, setUploadError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const letterheadInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +45,7 @@ export default function SettingsPage() {
       businessEmail: settings.businessEmail || '',
       businessAddress: settings.businessAddress || '',
       logoUrl: settings.logoUrl || '',
+      avatarUrl: settings.avatarUrl || '',
       headerText: settings.headerText || '',
       ntnNumber: settings.ntnNumber || '',
       footerText: settings.footerText || '',
@@ -83,11 +86,12 @@ export default function SettingsPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'signatureUrl' | 'letterheadUrl') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'signatureUrl' | 'letterheadUrl' | 'avatarUrl') => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 1024 * 1024) {
-        setUploadError(`${field === 'signatureUrl' ? 'Signature' : 'Letterhead'} file is too large. Please choose an image under 1MB.`);
+        const label = field === 'signatureUrl' ? 'Signature' : field === 'letterheadUrl' ? 'Letterhead' : 'Profile picture';
+        setUploadError(`${label} file is too large. Please choose an image under 1MB.`);
         return;
       }
       setUploadError('');
@@ -126,8 +130,18 @@ export default function SettingsPage() {
         <h1 className={styles.title}>Settings</h1>
       </header>
 
+      {/* <form> now wraps the whole bento grid (.content) plus the submit
+          button below it, instead of starting partway through the grid.
+          That lets the submit button live as a normal block sibling AFTER
+          .content, outside its multi-column flow — column-span: all on a
+          spanning element only reliably breaks across both columns when
+          the browser can see the full column-balanced content ahead of
+          it, and that broke down here (the button rendered mid-column,
+          not below both). Being a plain sibling avoids relying on that
+          entirely. */}
+      <form onSubmit={handleSubmit} className={styles.form}>
       <div className={styles.content}>
-        
+
         {/* Appearance Section */}
         <section className={`${styles.section} ${styles.sectionFull}`}>
           <h2 className={styles.sectionTitle}>Appearance</h2>
@@ -181,10 +195,9 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {uploadError && (
-            <p role="alert" className={styles.sectionFull} style={{ color: 'var(--color-danger)', fontSize: '13px', margin: 0 }}>{uploadError}</p>
-          )}
+        {uploadError && (
+          <p role="alert" className={styles.sectionFull} style={{ color: 'var(--color-danger)', fontSize: '13px', margin: 0 }}>{uploadError}</p>
+        )}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Business Details</h2>
             <p className={styles.sectionDesc}>This information will appear on your generated invoices.</p>
@@ -234,19 +247,53 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* Distinct from Branding Elements below: this is the signed-in
+              user's own picture (settings.avatarUrl, shown on the admin
+              card at the bottom of the sidebar), not the business's brand
+              logo. */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Your Profile</h2>
+            <p className={styles.sectionDesc}>Shown on your account card in the sidebar.</p>
+
+            <div className={styles.formGroup}>
+              <label>Profile Picture</label>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Recommended: 200×200px, square, JPG or PNG. Max 1MB.</p>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                {formData.avatarUrl && (
+                  <img src={formData.avatarUrl} alt="Profile" style={{ width: '64px', height: '64px', objectFit: 'cover', border: '1px solid var(--color-border)', borderRadius: '50%', background: 'var(--color-bg-secondary)' }} />
+                )}
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  ref={avatarInputRef}
+                  onChange={e => handleImageUpload(e, 'avatarUrl')}
+                  style={{ display: 'none' }}
+                />
+                <button type="button" onClick={() => avatarInputRef.current?.click()} className={styles.secondaryButton}>
+                  Upload Photo
+                </button>
+                {formData.avatarUrl && (
+                  <button type="button" onClick={() => setFormData({...formData, avatarUrl: ''})} className={styles.dangerButton}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Branding Elements</h2>
-            
+
             <div className={styles.formGroup}>
               <label>Company Logo</label>
-              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Recommended size: 150x150 pixels. Max 1MB.</p>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Recommended: 150×150px, square, PNG or JPG. Max 1MB.</p>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                 {formData.logoUrl && (
                   <img src={formData.logoUrl} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '8px', background: 'var(--color-bg-secondary)' }} />
                 )}
-                <input 
-                  type="file" 
-                  accept="image/*"
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
                   ref={fileInputRef}
                   onChange={handleLogoUpload}
                   style={{ display: 'none' }}
@@ -264,14 +311,14 @@ export default function SettingsPage() {
 
             <div className={styles.formGroup}>
               <label>Digital Signature / Stamp</label>
-              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Recommended size: 200x100 pixels. Transparent PNG preferred. Max 1MB.</p>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Recommended: 200×100px, transparent PNG preferred (JPG also accepted). Max 1MB.</p>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                 {formData.signatureUrl && (
                   <img src={formData.signatureUrl} alt="Signature" style={{ width: '120px', height: '60px', objectFit: 'contain', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '8px', background: 'var(--color-bg-secondary)' }} />
                 )}
-                <input 
-                  type="file" 
-                  accept="image/*"
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
                   ref={signatureInputRef}
                   onChange={e => handleImageUpload(e, 'signatureUrl')}
                   style={{ display: 'none' }}
@@ -289,14 +336,14 @@ export default function SettingsPage() {
 
             <div className={styles.formGroup}>
               <label>Official Letterhead</label>
-              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Appears only on A4 Bill format. Max 1MB.</p>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Recommended: 800×150px, wide banner, PNG or JPG. Appears only on A4 Bill format. Max 1MB.</p>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                 {formData.letterheadUrl && (
                   <img src={formData.letterheadUrl} alt="Letterhead" style={{ width: '200px', height: '40px', objectFit: 'cover', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '4px', background: 'var(--color-bg-secondary)' }} />
                 )}
-                <input 
-                  type="file" 
-                  accept="image/*"
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
                   ref={letterheadInputRef}
                   onChange={e => handleImageUpload(e, 'letterheadUrl')}
                   style={{ display: 'none' }}
@@ -517,13 +564,13 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <div className={`${styles.formActions} ${styles.sectionFull}`}>
-            <button type="submit" className={styles.submitButton}>
-              {saved ? 'Saved Successfully' : 'Save All Settings'}
-            </button>
-          </div>
-        </form>
       </div>
+      <div className={styles.formActions}>
+        <button type="submit" className={styles.submitButton}>
+          {saved ? 'Saved Successfully' : 'Save All Settings'}
+        </button>
+      </div>
+      </form>
     </div>
   );
 }

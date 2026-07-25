@@ -77,8 +77,7 @@
 
 .card {
   background: var(--color-bg-secondary);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: 24px;
@@ -86,8 +85,6 @@
   flex-direction: column;
   gap: 8px;
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   transition: all 0.3s var(--ease-custom);
 }
 
@@ -114,7 +111,6 @@
 .tableWrapper {
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow-x: auto;

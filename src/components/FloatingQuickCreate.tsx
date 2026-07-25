@@ -90,6 +90,7 @@ export default function FloatingQuickCreate() {
         aria-expanded={isOpen}
       >
         <motion.div
+          className={styles.fabIconWrap}
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ duration: 0.2 }}
         >

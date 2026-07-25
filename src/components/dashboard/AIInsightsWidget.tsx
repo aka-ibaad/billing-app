@@ -21,7 +21,7 @@ export default function AIInsightsWidget() {
         icon: WarningCircle,
         title: 'Action Required',
         desc: `You have ${overdueInvoices.length} overdue invoices.`,
-        recommendation: `Follow up to collect ₨ ${overdueInvoices.reduce((sum, inv) => sum + inv.items.reduce((s:number, i:any)=>s+(i.quantity*i.rate),0), 0).toLocaleString()}`
+        recommendation: `Follow up to collect Rs ${overdueInvoices.reduce((sum, inv) => sum + inv.items.reduce((s:number, i:any)=>s+(i.quantity*i.rate),0), 0).toLocaleString()}`
       });
     }
 
@@ -41,7 +41,7 @@ export default function AIInsightsWidget() {
         icon: TrendUp,
         title: 'Client Insight',
         desc: `Your highest paying customer is ${topClient?.name || 'Unknown'}.`,
-        recommendation: `They generated ₨ ${clientRevenue[topClientId].toLocaleString()} in revenue.`
+        recommendation: `They generated Rs ${clientRevenue[topClientId].toLocaleString()} in revenue.`
       });
     }
 

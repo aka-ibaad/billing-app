@@ -77,7 +77,7 @@ export default function UpcomingDueCalendar() {
               </div>
               <div className={styles.info}>
                 <div className={styles.client}>{item.clientName}</div>
-                <div className={styles.amount}>₨ {item.amount.toLocaleString()}</div>
+                <div className={styles.amount}>Rs {item.amount.toLocaleString()}</div>
               </div>
               <div className={`${styles.status} ${item.diffDays < 0 ? styles.overdue : item.diffDays === 0 ? styles.today : ''}`}>
                 {item.dueLabel}

@@ -84,10 +84,18 @@
   --dark-noise-opacity: 0.04;
 
   /* --- DARK DROPDOWN --- */
-  --dark-dropdown-bg: rgba(17, 24, 39, 0.85); /* #111827 */
+  /* Was rgba(17, 24, 39, 0.85) — Tailwind's gray-900, which carries a
+     visible blue tint. That's fine floating over a light page, but this
+     app's actual dark theme background is near-black (--dark-bg-primary:
+     #050505, see below), so the panel read as a mismatched translucent
+     blue box rather than a surface that belongs to the same UI —
+     especially visible on large panels like Notifications and Search
+     where a lot of the tint shows. Matched to the real dark palette and
+     pushed opacity up so page content doesn't show through as strongly. */
+  --dark-dropdown-bg: rgba(10, 10, 10, 0.92);
   --dark-dropdown-text: #ffffff;
   --dark-dropdown-secondary: #d1d5db;
-  --dark-dropdown-hover: #1f2937;
+  --dark-dropdown-hover: rgba(255, 255, 255, 0.06);
   --dark-dropdown-selected: #3b82f6;
   --dark-dropdown-selected-text: #ffffff;
   --dark-dropdown-border: rgba(255, 255, 255, 0.08);
@@ -142,9 +150,12 @@
   --color-dropdown-selected-text: var(--light-dropdown-selected-text);
   --color-dropdown-border: var(--light-dropdown-border);
 
-  /* Typography */
+  /* Typography: Poppins/Oswald pairing. Poppins (--font-sans) carries body
+     text and UI chrome; Oswald (--font-heading) is reserved for headings
+     and other display-weight text, applied via the h1-h6 rule below plus
+     .fontHeading for heading-styled text that isn't a real h-tag. */
   --font-sans: var(--font-sans-loaded), sans-serif;
-  --font-mono: var(--font-mono-loaded), monospace;
+  --font-heading: var(--font-heading-loaded), sans-serif;
   
   --text-xs: clamp(0.7rem, 0.7vw + 0.1rem, 0.75rem);
   --text-sm: clamp(0.8125rem, 0.8vw + 0.1rem, 0.875rem);
@@ -255,6 +266,15 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Oswald for headings/display text, Poppins (inherited from body) for
+   everything else — see the Poppins/Oswald pairing comment on --font-sans
+   above. .fontHeading covers heading-styled elements that render as a
+   <div>/<span> instead of a real <h*> tag (e.g. TopBar's greeting,
+   InvoicePreview's document title) so they still pick up Oswald. */
+h1, h2, h3, h4, h5, h6, .fontHeading {
+  font-family: var(--font-heading);
+}
+
 /* Native select and options styling */
 select, input[type="date"], input[type="time"], input[type="datetime-local"] {
   background-color: var(--color-bg-secondary); /* Usually matches input bg, dropdown itself uses dropdown-bg */
@@ -362,9 +382,17 @@ button:active {
   padding: 0 var(--space-4);
 }
 
+/* Used for invoice numbers, dates, and amounts throughout the app — these
+   need digits to line up in columns, which is what a monospace font is
+   normally for. But a literal monospace typeface (Space Mono) looked like
+   a third, unrelated font dropped into the Poppins/Oswald pairing. Poppins
+   itself supports tabular figures (font-variant-numeric: tabular-nums),
+   which gives every digit the same width without leaving the type system —
+   same font everywhere, numbers still align. */
 .mono-text {
-  font-family: var(--font-mono);
-  letter-spacing: -0.02em;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .sans-text {
@@ -411,9 +439,9 @@ button:active {
   }
   
   .main-content {
-    /* Leave room for the bottom nav and the floating quick-create button
-       (which sits at 84px-140px from the bottom on mobile). */
-    padding-bottom: calc(152px + env(safe-area-inset-bottom));
+    /* Leave room for the floating pill nav (bottom 12px + 52px tall) and
+       the FAB above it, which sits at 84px-140px from the bottom. */
+    padding-bottom: calc(160px + env(safe-area-inset-bottom));
     width: 100%;
     max-width: 100vw;
   }
@@ -459,5 +487,19 @@ button:active {
   
   html {
     font-size: 75%; /* Shrinks all rem-based sizes by 25% */
+  }
+
+  /* Safari on iOS auto-zooms the page when a focused form control's
+     computed font-size is under 16px — the classic tell that a page is
+     "just a website" rather than a native-feeling app. The typography
+     scale above shrinks --text-label to 9px specifically for mobile
+     density, which every <input>/<select>/<textarea> in the app inherits,
+     so it has to be overridden back up for form controls specifically.
+     !important is deliberate here: it only needs to beat this stylesheet's
+     own component classes (e.g. .input { font-size: var(--text-label) }),
+     which all resolve at equal-or-lower specificity than this selector
+     list, so without it the cascade would go the other way. */
+  input, select, textarea {
+    font-size: 16px !important;
   }
 }

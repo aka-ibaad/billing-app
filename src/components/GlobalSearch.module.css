@@ -50,7 +50,6 @@
   overflow-y: auto;
   padding: 12px;
   backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
 .noResults {

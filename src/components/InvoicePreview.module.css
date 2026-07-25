@@ -12,6 +12,18 @@
   overflow: auto;
 }
 
+/* var(--space-8) (64px a side, 128px total) barely registers against the
+   A4 document's 800px native width, but it was eating 40% of the
+   receipt/vertical document's 320px width — squeezing its actual content
+   (documentVertical's own padding + the items table) into ~150px and
+   causing the table columns to wrap even after they'd been sized
+   correctly for a ~224-256px table. Scoped with :has() so this only
+   affects the grey backdrop when it's actually wrapping the narrow
+   format, not the A4 one. */
+.documentWrapper:has(.documentVertical) {
+  padding: var(--space-2);
+}
+
 .documentHorizontal {
   background-color: white;
   width: 100%;
@@ -215,14 +227,60 @@
 .invoiceTable {
   width: 100%;
   border-collapse: collapse;
+  /* table-layout: fixed is required, not cosmetic: with the default
+     "auto" layout, a <table> sizes its columns from its content's natural
+     (unwrapped) width, growing past 100% of its container if the header
+     labels + formatted numbers need more room than that — and the parent
+     .document has overflow: hidden, so the excess silently clips off the
+     right edge instead of wrapping. That read as the receipt/vertical
+     format's AMOUNT column (and its values) being "cut off" on the right,
+     even though the surrounding scale-to-fit math was correct. Fixed
+     layout forces columns to respect colDesc/colQty/colRate/colAmount's
+     percentage widths and wrap their content instead. */
+  table-layout: fixed;
 }
 .documentVertical .invoiceTable {
-  font-size: 12px;
+  /* Smaller than the A4 table's 12px, and the header's letter-spacing is
+     tightened too — at 224px of usable width across 4 fixed-width
+     columns (see table-layout: fixed above), "Rs 0.00" at 12px with the
+     base 0.1em letter-spacing didn't fit the Rate/Amount columns and
+     wrapped onto two lines. */
+  font-size: 10px;
+}
+.documentVertical .invoiceTable th {
+  letter-spacing: 0;
+}
+
+/* Qty rarely needs more than 1-2 digits, so the vertical/receipt format
+   gives that space to Rate and Amount instead, which both need to fit a
+   "Rs 0.00"-shaped value in the same fixed-width column. */
+.documentVertical .colDesc {
+  width: 16%;
+}
+.documentVertical .colQty {
+  width: 15%;
+}
+.documentVertical .colRate {
+  width: 30%;
+}
+.documentVertical .colAmount {
+  width: 39%;
+}
+
+.invoiceTable th,
+.invoiceTable td {
+  overflow-wrap: break-word;
 }
 
 .invoiceTable th {
   text-align: left;
-  padding: 12px 0;
+  /* Horizontal padding is required, not cosmetic: with 0 it was possible
+     for adjacent columns (e.g. QTY/RATE on the narrow receipt format) to
+     render with no visible gap between them, reading as one run-on string
+     ("DESCRIPTIONQTYRATEAMOUNT"). The A4 format never showed this because
+     its ~700px table width gave columns enough natural breathing room even
+     at 0 padding, but the ~250px receipt table did not. */
+  padding: 12px 8px;
   border-bottom: 2px solid #111;
   font-size: 10px;
   font-weight: 600;
@@ -231,13 +289,26 @@
   text-transform: uppercase;
 }
 
+.invoiceTable th:first-child,
+.invoiceTable td:first-child {
+  padding-left: 0;
+}
+
+.invoiceTable th:last-child,
+.invoiceTable td:last-child {
+  padding-right: 0;
+}
+
 .invoiceTable td {
-  padding: 16px 0;
+  padding: 16px 8px;
   border-bottom: 1px solid #eee;
   vertical-align: top;
 }
 .documentVertical .invoiceTable td {
-  padding: 8px 0;
+  padding: 8px 4px;
+}
+.documentVertical .invoiceTable th {
+  padding: 10px 4px;
 }
 
 .colDesc {

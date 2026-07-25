@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAppData } from '@/context/AppDataContext';
+import { useAppData, Client } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash, Users } from '@phosphor-icons/react';
+import { Trash, Users, X, EnvelopeSimple, Phone, MapPin, CalendarBlank } from '@phosphor-icons/react';
 import { TopClientsChart } from '@/components/dashboard/DetailedCharts';
 import styles from './page.module.css';
 
@@ -23,6 +23,16 @@ function ClientsContent() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
+
+  const calculateInvoiceTotal = (inv: (typeof invoices)[number]) => {
+    const subtotal = inv.items.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+    const discountAmount = inv.discount?.type === 'percentage' ? subtotal * ((inv.discount?.value || 0) / 100) : (inv.discount?.value || 0);
+    const afterDiscount = Math.max(0, subtotal - discountAmount);
+    let totalTax = 0;
+    inv.taxes?.forEach(tax => { totalTax += afterDiscount * (tax.rate / 100); });
+    return afterDiscount + totalTax;
+  };
 
   const isFormDirty = () => Object.values(newClient).some(v => v.trim() !== '');
 
@@ -204,7 +214,11 @@ function ClientsContent() {
               filteredClients.map(client => {
                 const clientInvoicesCount = invoices.filter(inv => inv.clientId === client.id).length;
                 return (
-                  <tr key={client.id} className={styles.tableRow}>
+                  <tr
+                    key={client.id}
+                    className={`${styles.tableRow} ${styles.clickableRow}`}
+                    onClick={() => setViewingClient(client)}
+                  >
                     <td className="sans-text" style={{ fontWeight: 500 }}>{client.name}</td>
                     <td>{client.email}</td>
                     <td className="mono-text">{new Date(client.createdAt).toLocaleDateString()}</td>
@@ -214,7 +228,10 @@ function ClientsContent() {
                         type="button"
                         className={styles.iconButton}
                         aria-label={`Delete ${client.name}`}
-                        onClick={() => handleDeleteClient(client.id, client.name, clientInvoicesCount)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClient(client.id, client.name, clientInvoicesCount);
+                        }}
                       >
                         <Trash size={16} />
                       </button>
@@ -228,6 +245,105 @@ function ClientsContent() {
           </div>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {viewingClient && (
+          <motion.div
+            className={styles.detailBackdrop}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={() => setViewingClient(null)}
+          >
+            <motion.div
+              className={styles.detailModal}
+              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.97 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.detailHeader}>
+                <div className={styles.detailHeaderInfo}>
+                  <div className={styles.detailAvatar}>{viewingClient.name.substring(0, 2).toUpperCase()}</div>
+                  <div>
+                    <h2 className={`${styles.detailName} fontHeading`}>{viewingClient.name}</h2>
+                    <span className={styles.detailSubtitle}>Client since {new Date(viewingClient.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={styles.detailCloseBtn}
+                  aria-label="Close client details"
+                  onClick={() => setViewingClient(null)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className={styles.detailContactGrid}>
+                <div className={styles.detailContactItem}>
+                  <EnvelopeSimple size={16} className={styles.detailContactIcon} />
+                  <span>{viewingClient.email}</span>
+                </div>
+                {viewingClient.phone && (
+                  <div className={styles.detailContactItem}>
+                    <Phone size={16} className={styles.detailContactIcon} />
+                    <span className="mono-text">{viewingClient.phone}</span>
+                  </div>
+                )}
+                {viewingClient.address && (
+                  <div className={styles.detailContactItem}>
+                    <MapPin size={16} className={styles.detailContactIcon} />
+                    <span>{viewingClient.address}</span>
+                  </div>
+                )}
+                <div className={styles.detailContactItem}>
+                  <CalendarBlank size={16} className={styles.detailContactIcon} />
+                  <span className="mono-text">Added {new Date(viewingClient.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              <div className={styles.detailDivider} />
+
+              <div className={styles.detailInvoicesHeader}>
+                <span>Invoices</span>
+                <span className="mono-text">
+                  {invoices.filter(inv => inv.clientId === viewingClient.id).length}
+                </span>
+              </div>
+
+              {(() => {
+                const clientInvoices = invoices
+                  .filter(inv => inv.clientId === viewingClient.id)
+                  .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
+
+                if (clientInvoices.length === 0) {
+                  return <p className={styles.detailEmptyInvoices}>No invoices for this client yet.</p>;
+                }
+
+                return (
+                  <div className={styles.detailInvoiceList}>
+                    {clientInvoices.map(inv => (
+                      <div key={inv.id} className={styles.detailInvoiceRow}>
+                        <div className={styles.detailInvoiceInfo}>
+                          <span className="mono-text" style={{ fontWeight: 500 }}>#{inv.number}</span>
+                          <span className={styles.detailInvoiceDate}>{new Date(inv.issueDate).toLocaleDateString()}</span>
+                        </div>
+                        <span className={`${styles.detailStatusBadge} ${styles[`status${inv.status}`]}`}>{inv.status}</span>
+                        <span className={`${styles.textRight} mono-text`} style={{ fontWeight: 600 }}>
+                          Rs {calculateInvoiceTotal(inv).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

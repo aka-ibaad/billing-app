@@ -66,13 +66,20 @@
   .builderSplitScreen {
     grid-template-columns: 1fr;
   }
+
+  .tableCard {
+    display: none;
+  }
+
+  .mobileInvoiceList {
+    display: flex;
+  }
 }
 
 /* Base double bezel card styling for widgets */
 .cardBase {
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
@@ -91,7 +98,6 @@
   border-radius: var(--radius-xl);
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-md);
@@ -127,13 +133,30 @@
 }
 
 .builderHeader {
-  display: grid;
-  /* Document Type carries the longest content ("Invoice (Standard)"),
-     so it needs a real minimum instead of an even 1fr share, which was
-     clipping it against the select's native dropdown arrow. */
-  grid-template-columns: minmax(160px, 2fr) minmax(120px, 1fr) minmax(150px, 1.3fr);
-  gap: var(--space-4);
+  /* This is deliberately flexbox, not CSS Grid. There are two of these
+     side by side in the form (one with 4 fields, one with 2-3 depending
+     on payment terms) — a fixed-column grid template misaligns whenever
+     the item count isn't a multiple of the column count: the leftover
+     item wraps alone into a new row while the grid still reserves empty
+     column tracks beside it (that's what was leaving "Issue Date & Time"
+     stranded next to a dead gap, and "Expected Ready Date & Time" reading
+     as attached to the unrelated "Payment Terms" row above it). Flex-wrap
+     has no such reserved-track concept: items just wrap to a new line and
+     only take the width they need, at any viewport size, with any item
+     count. */
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
   row-gap: var(--space-6);
+}
+
+.builderHeader .formGroup {
+  /* 200px covers "Invoice (Standard)", the longest option text, without
+     clipping against the select's native dropdown arrow. flex-grow lets
+     fields share leftover row width evenly; flex-shrink + min-width:0
+     (below) let them shrink below 200px on narrow rows instead of
+     overflowing. */
+  flex: 1 1 200px;
 }
 
 .formGroup {
@@ -205,9 +228,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  /* One of the two .itemsSection cards on this form (Discounts & Taxes)
+     had this applied as an inline style override, but the other — the
+     line-items table right above it, immediately after .builderHeader —
+     never did, so it sat flush against the field row above it while its
+     sibling had proper breathing room. Moved into the shared class so
+     both (and any future .itemsSection) get consistent spacing without
+     relying on call-site overrides. */
+  margin-top: var(--space-6);
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   padding: var(--space-6);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-subtle);
@@ -435,7 +465,6 @@
 .tableCard {
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
@@ -448,6 +477,15 @@
   padding: var(--space-8);
   box-shadow: var(--inner-glow);
   overflow-x: auto;
+}
+
+/* Swipe-to-delete card list — desktop's data table doesn't reflow into
+   cards well, so mobile gets its own list instead. Hidden by default,
+   swapped in below 768px alongside hiding .tableCard. */
+.mobileInvoiceList {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .table {
@@ -570,8 +608,10 @@
   }
   
   .builderHeader {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
+    /* flex-wrap in the base rule already reflows this correctly at any
+       width; this just tightens the row gap to match the denser mobile
+       spacing scale used elsewhere. */
+    row-gap: var(--space-4);
   }
 
   .itemsHeader {

@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useLayoutEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppData, Tax } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
 import { Plus, Trash, DownloadSimple, Image as ImageIcon, FileText } from '@phosphor-icons/react';
 import InvoicePreview from '@/components/InvoicePreview';
+import InvoiceSwipeCard from '@/components/InvoiceSwipeCard';
 import UpcomingDueCalendar from '@/components/dashboard/UpcomingDueCalendar';
 import { InvoiceStatusChart } from '@/components/dashboard/DetailedCharts';
 import html2canvas from 'html2canvas';
@@ -18,11 +19,34 @@ function InvoicesContent() {
   const [isCreating, setIsCreating] = useState(false);
   const [formError, setFormError] = useState('');
   const previewRef = useRef<HTMLDivElement>(null);
+  const previewScalerRef = useRef<HTMLDivElement>(null);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(1);
   const [previewNativeHeight, setPreviewNativeHeight] = useState(0);
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortBy, setSortBy] = useState('date-desc');
+
+  // Shared by both the desktop table and the mobile swipe-card list below,
+  // so the filter/sort logic only lives in one place.
+  const processedInvoices = useMemo(() => {
+    return invoices
+      .filter(inv => filterStatus === 'All' || inv.status === filterStatus)
+      .map(inv => {
+        const subtotal = inv.items.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+        const discountAmount = inv.discount?.type === 'percentage' ? subtotal * ((inv.discount?.value || 0) / 100) : (inv.discount?.value || 0);
+        const afterDiscount = Math.max(0, subtotal - discountAmount);
+        let totalTax = 0;
+        inv.taxes?.forEach(tax => { totalTax += afterDiscount * (tax.rate / 100); });
+        return { ...inv, calculatedTotal: afterDiscount + totalTax };
+      })
+      .sort((a, b) => {
+        if (sortBy === 'date-desc') return new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime();
+        if (sortBy === 'date-asc') return new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime();
+        if (sortBy === 'amount-desc') return b.calculatedTotal - a.calculatedTotal;
+        if (sortBy === 'amount-asc') return a.calculatedTotal - b.calculatedTotal;
+        return 0;
+      });
+  }, [invoices, filterStatus, sortBy]);
 
   // Declared before the effects below — both reference `newInvoice`
   // (one in its dependency array, which React evaluates synchronously
@@ -71,10 +95,22 @@ function InvoicesContent() {
     if (!wrapperEl || !contentEl) return;
 
     const nativeWidth = newInvoice.format === 'vertical' ? 320 : 800;
+    // Both formats share the same rule: shrink to fit the pane, but never
+    // upscale past the document's true native size (800px A4 / 320px
+    // receipt) since that just blurs it. The receipt used to look
+    // "broken" at close to 100% scale, but that was actually the table
+    // overflowing its cell widths (fixed via table-layout: fixed in
+    // InvoicePreview.module.css) plus a font-fallback glyph size mismatch
+    // (the ₨ symbol rendering larger than the surrounding mono digits,
+    // fixed by switching to plain "Rs" text) — not the scale itself. So
+    // the receipt gets the same fit-to-width treatment as A4 now, instead
+    // of being artificially capped small and leaving the pane mostly empty
+    // grey space around a tiny card.
+    const maxScale = 1;
 
     const recalc = () => {
       const w = wrapperEl.clientWidth;
-      if (w > 0) setPreviewScale(w / nativeWidth);
+      if (w > 0) setPreviewScale(Math.min(w / nativeWidth, maxScale));
       setPreviewNativeHeight(contentEl.scrollHeight);
     };
 
@@ -205,9 +241,45 @@ function InvoicesContent() {
     }
   };
 
+  // html2canvas captures previewRef, but its direct parent (previewScaler)
+  // carries a live `transform: scale(previewScale)` from the scale-to-fit
+  // mechanism above — that's what let the panel shrink to fit the pane
+  // width without clipping. html2canvas reads the ancestor's transformed
+  // bounding box but clones/renders the subtree at its natural size, and
+  // that mismatch is exactly what produced the doubled/ghosted text in
+  // exported images and PDFs. The fix is to zero out the transform right
+  // before capture (so html2canvas sees the element at 1:1, untransformed)
+  // and restore it immediately after — previewRef's own internal layout
+  // never depended on the parent's scale, only its visual size did, so
+  // this doesn't change what gets captured, only how faithfully it's read.
+  const captureInvoicePreview = async (scale = 2) => {
+    if (!previewRef.current) return null;
+    const scaler = previewScalerRef.current;
+    const prevTransform = scaler?.style.transform;
+
+    if (scaler) scaler.style.transform = 'none';
+    // Let the transform removal actually reflow, and make sure the
+    // (potentially not-yet-loaded) web fonts are ready — html2canvas
+    // rasterizes whatever font is active at capture time, and racing a
+    // late font swap is a second, independent way to get garbled glyphs.
+    await document.fonts.ready;
+    await new Promise(requestAnimationFrame);
+
+    try {
+      return await html2canvas(previewRef.current, {
+        scale,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        foreignObjectRendering: false,
+      });
+    } finally {
+      if (scaler && prevTransform !== undefined) scaler.style.transform = prevTransform;
+    }
+  };
+
   const exportPDF = async () => {
-    if (!previewRef.current) return;
-    const canvas = await html2canvas(previewRef.current, { scale: 2 });
+    const canvas = await captureInvoicePreview();
+    if (!canvas) return;
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({
       orientation: newInvoice.format === 'horizontal' ? 'portrait' : 'portrait',
@@ -219,8 +291,8 @@ function InvoicesContent() {
   };
 
   const exportImage = async () => {
-    if (!previewRef.current) return;
-    const canvas = await html2canvas(previewRef.current, { scale: 2 });
+    const canvas = await captureInvoicePreview();
+    if (!canvas) return;
     const link = document.createElement('a');
     link.download = `${newInvoice.number}.png`;
     link.href = canvas.toDataURL('image/png');
@@ -332,20 +404,18 @@ function InvoicesContent() {
                   )}
                   <div className={styles.formGroup}>
                     <label>Expected Ready Date & Time</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input 
-                        type="date" 
+                    <div className={styles.dateTimeRow}>
+                      <input
+                        type="date"
                         className={`${styles.input} mono-text`}
-                        style={{ flex: 2 }}
-                        value={newInvoice.expectedReadyDate || ''} 
-                        onChange={e => setNewInvoice({...newInvoice, expectedReadyDate: e.target.value})} 
+                        value={newInvoice.expectedReadyDate || ''}
+                        onChange={e => setNewInvoice({...newInvoice, expectedReadyDate: e.target.value})}
                       />
-                      <input 
-                        type="time" 
+                      <input
+                        type="time"
                         className={`${styles.input} mono-text`}
-                        style={{ flex: 1 }}
-                        value={newInvoice.expectedReadyTime || ''} 
-                        onChange={e => setNewInvoice({...newInvoice, expectedReadyTime: e.target.value})} 
+                        value={newInvoice.expectedReadyTime || ''}
+                        onChange={e => setNewInvoice({...newInvoice, expectedReadyTime: e.target.value})}
                       />
                     </div>
                   </div>
@@ -397,7 +467,7 @@ function InvoicesContent() {
                         onChange={e => handleItemChange(item.id, 'rate', Number(e.target.value))}
                       />
                       <span className="mono-text">
-                        ₨ {(item.quantity * item.rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        Rs {(item.quantity * item.rate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </span>
                       <button
                         type="button"
@@ -420,22 +490,22 @@ function InvoicesContent() {
                   </button>
                 </div>
 
-                <div className={styles.itemsSection} style={{ marginTop: 'var(--space-6)' }}>
+                <div className={styles.itemsSection}>
                   <h3 style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>Discounts & Taxes</h3>
                   
-                  <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                    <div className={styles.formGroup} style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    <div className={styles.formGroup} style={{ flex: '1 1 140px', minWidth: 0 }}>
                       <label>Discount Type</label>
-                      <select 
+                      <select
                         className={styles.input}
                         value={newInvoice.discount.type}
                         onChange={e => setNewInvoice({...newInvoice, discount: { ...newInvoice.discount, type: e.target.value as 'fixed' | 'percentage' }})}
                       >
-                        <option value="fixed">Fixed Amount (₨)</option>
+                        <option value="fixed">Fixed Amount (Rs)</option>
                         <option value="percentage">Percentage (%)</option>
                       </select>
                     </div>
-                    <div className={styles.formGroup} style={{ flex: 1 }}>
+                    <div className={styles.formGroup} style={{ flex: '1 1 140px', minWidth: 0 }}>
                       <label>Discount Value</label>
                       <input 
                         type="number" 
@@ -473,23 +543,23 @@ function InvoicesContent() {
                   <div className={styles.totals}>
                     <div className={styles.totalRow}>
                       <span>Subtotal</span>
-                      <span className="mono-text">₨ {calculateTotals().subtotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                      <span className="mono-text">Rs {calculateTotals().subtotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     {newInvoice.discount.value > 0 && (
                       <div className={styles.totalRow} style={{ color: '#ff4444' }}>
                         <span>Discount ({newInvoice.discount.type === 'percentage' ? `${newInvoice.discount.value}%` : 'Fixed'})</span>
-                        <span className="mono-text">- ₨ {calculateTotals().discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <span className="mono-text">- Rs {calculateTotals().discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                       </div>
                     )}
                     {newInvoice.taxes.map(tax => (
                       <div key={tax.id} className={styles.totalRow}>
                         <span>{tax.name} ({tax.rate}%)</span>
-                        <span className="mono-text">+ ₨ {(calculateTotals().afterDiscount * (tax.rate / 100)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <span className="mono-text">+ Rs {(calculateTotals().afterDiscount * (tax.rate / 100)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                       </div>
                     ))}
                     <div className={styles.totalRowLarge}>
                       <span>Total</span>
-                      <span className="mono-text">₨ {calculateTotals().total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                      <span className="mono-text">Rs {calculateTotals().total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                   </div>
                   
@@ -535,6 +605,7 @@ function InvoicesContent() {
                   style={previewNativeHeight ? { height: previewNativeHeight * previewScale } : undefined}
                 >
                   <div
+                    ref={previewScalerRef}
                     className={styles.previewScaler}
                     style={{
                       width: newInvoice.format === 'vertical' ? 320 : 800,
@@ -612,23 +683,7 @@ function InvoicesContent() {
                 </tr>
               </thead>
               <tbody>
-            {invoices
-              .filter(inv => filterStatus === 'All' || inv.status === filterStatus)
-              .map(inv => {
-                const subtotal = inv.items.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
-                let discountAmount = inv.discount?.type === 'percentage' ? subtotal * ((inv.discount?.value || 0) / 100) : (inv.discount?.value || 0);
-                const afterDiscount = Math.max(0, subtotal - discountAmount);
-                let totalTax = 0;
-                inv.taxes?.forEach(tax => { totalTax += afterDiscount * (tax.rate / 100); });
-                return { ...inv, calculatedTotal: afterDiscount + totalTax };
-              })
-              .sort((a, b) => {
-                if (sortBy === 'date-desc') return new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime();
-                if (sortBy === 'date-asc') return new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime();
-                if (sortBy === 'amount-desc') return b.calculatedTotal - a.calculatedTotal;
-                if (sortBy === 'amount-asc') return a.calculatedTotal - b.calculatedTotal;
-                return 0;
-              })
+            {processedInvoices
               .map(inv => {
                 const client = clients.find(c => c.id === inv.clientId);
                 const total = inv.calculatedTotal;
@@ -670,7 +725,7 @@ function InvoicesContent() {
                       )}
                     </div>
                   </td>
-                  <td className={`${styles.textRight} mono-text`}>₨ {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td className={`${styles.textRight} mono-text`}>Rs {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                   <td className={styles.textRight}>
                     <button
                       type="button"
@@ -698,6 +753,42 @@ function InvoicesContent() {
           </tbody>
         </table>
         </div>
+        </div>
+
+        {/* Mobile-only swipe-to-delete card list. CSS (.mobileInvoiceList)
+            hides this on desktop and hides the table above on mobile,
+            rather than trying to make a <table> reflow into cards. */}
+        <div className={styles.mobileInvoiceList}>
+          {processedInvoices.map(inv => {
+            const client = clients.find(c => c.id === inv.clientId);
+            const statusClass = `${styles.statusBadge} ${
+              inv.status === 'Paid' ? styles.statusPaid :
+              inv.status === 'Overdue' ? styles.statusOverdue :
+              inv.status === 'Pending' ? styles.statusPending :
+              styles.statusDraft
+            }`;
+            return (
+              <InvoiceSwipeCard
+                key={inv.id}
+                number={inv.number}
+                clientName={client?.name || 'Unknown Client'}
+                issueDate={inv.issueDate}
+                status={inv.status}
+                statusClassName={statusClass}
+                amountLabel={`Rs ${inv.calculatedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                onDelete={() => handleDeleteInvoice(inv.id, inv.number)}
+              />
+            );
+          })}
+          {processedInvoices.length === 0 && (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyStateInner}>
+                <div className={styles.emptyStateIcon}><FileText size={20} weight="duotone" /></div>
+                <div className={styles.emptyStateTitle}>No invoices found</div>
+                <div className={styles.emptyStateDesc}>Create your first invoice to get started.</div>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

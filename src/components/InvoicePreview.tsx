@@ -160,10 +160,17 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
           <table className={styles.invoiceTable}>
             <thead>
               <tr>
-                <th className={styles.colDesc}>Description</th>
+                {/* The receipt/vertical format only has ~30-45px of column
+                    width to work with once table-layout: fixed forces the
+                    header cells to respect their percentage widths (see
+                    InvoicePreview.module.css) — "Amount" at 10px uppercase
+                    with letter-spacing doesn't fit that, and would wrap
+                    mid-word ("AM-OUNT") instead of cleanly. Abbreviating
+                    just for this format keeps every header on one line. */}
+                <th className={styles.colDesc}>{format === 'vertical' ? 'Item' : 'Description'}</th>
                 <th className={styles.colQty}>Qty</th>
                 <th className={styles.colRate}>Rate</th>
-                <th className={styles.colAmount}>Amount</th>
+                <th className={styles.colAmount}>{format === 'vertical' ? 'Amt' : 'Amount'}</th>
               </tr>
             </thead>
             <tbody>
@@ -171,8 +178,8 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
                 <tr key={item.id || idx}>
                   <td className={styles.colDesc}>{item.description || '...'}</td>
                   <td className={`${styles.colQty} mono-text`}>{item.quantity || 0}</td>
-                  <td className={`${styles.colRate} mono-text`}>₨ {(item.rate || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                  <td className={`${styles.colAmount} mono-text`}>₨ {((item.quantity || 0) * (item.rate || 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td className={`${styles.colRate} mono-text`}>Rs {(item.rate || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td className={`${styles.colAmount} mono-text`}>Rs {((item.quantity || 0) * (item.rate || 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 </tr>
               ))}
             </tbody>
@@ -195,34 +202,34 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
           <div className={styles.totalsSection}>
             <div className={styles.totalRow}>
               <span>Subtotal</span>
-              <span className="mono-text">₨ {tSub.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span className="mono-text">Rs {tSub.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             
             {invoice.discount && invoice.discount.value > 0 && (
               <div className={styles.totalRow} style={{ color: '#ff4444' }}>
                 <span>Discount ({invoice.discount.type === 'percentage' ? `${invoice.discount.value}%` : 'Fixed'})</span>
-                <span className="mono-text">- ₨ {tDiscount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span className="mono-text">- Rs {tDiscount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             )}
             
             {invoice.taxes?.map(tax => (
               <div key={tax.id} className={styles.totalRow}>
                 <span>{tax.name} ({tax.rate}%)</span>
-                <span className="mono-text">+ ₨ {((totals?.afterDiscount || tSub) * (tax.rate / 100)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span className="mono-text">+ Rs {((totals?.afterDiscount || tSub) * (tax.rate / 100)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             ))}
             
             <div className={styles.grandTotal}>
               <span>Total Due</span>
               <span className="mono-text">
-                ₨ {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                Rs {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </span>
             </div>
 
             {paymentStatus === 'advance_full' && (
               <div className={styles.totalRow} style={{ color: 'var(--color-success)', marginTop: '8px' }}>
                 <span>Paid (Full Advance)</span>
-                <span className="mono-text">- ₨ {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span className="mono-text">- Rs {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             )}
             
@@ -230,12 +237,12 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
               <>
                 <div className={styles.totalRow} style={{ color: 'var(--color-success)', marginTop: '8px' }}>
                   <span>Advance Paid</span>
-                  <span className="mono-text">- ₨ {advanceAmountPaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  <span className="mono-text">- Rs {advanceAmountPaid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
                 <div className={styles.grandTotal} style={{ fontSize: '18px', marginTop: '12px', borderTop: 'none' }}>
                   <span>Remaining Balance</span>
                   <span className="mono-text">
-                    ₨ {Math.max(0, tFinal - advanceAmountPaid).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    Rs {Math.max(0, tFinal - advanceAmountPaid).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </span>
                 </div>
               </>

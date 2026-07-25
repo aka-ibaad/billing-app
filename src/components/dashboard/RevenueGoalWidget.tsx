@@ -77,10 +77,10 @@ export default function RevenueGoalWidget() {
       </div>
 
       <div className={styles.details}>
-        <div className={styles.current}>₨ {currentRevenue.toLocaleString()}</div>
+        <div className={styles.current}>Rs {currentRevenue.toLocaleString()}</div>
         {isEditing ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginTop: '4px' }}>
-            <span className={styles.target}>of ₨</span>
+            <span className={styles.target}>of Rs</span>
             <input
               type="number"
               min="1"
@@ -94,7 +94,7 @@ export default function RevenueGoalWidget() {
             <span className={styles.target}>target</span>
           </div>
         ) : (
-          <div className={styles.target}>of ₨ {monthlyGoal.toLocaleString()} target</div>
+          <div className={styles.target}>of Rs {monthlyGoal.toLocaleString()} target</div>
         )}
       </div>
     </div>

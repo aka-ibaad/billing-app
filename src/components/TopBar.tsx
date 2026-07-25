@@ -15,13 +15,18 @@ export default function TopBar() {
   // repeating the greeting there was redundant and pushed real content
   // below the fold. Other pages get a slim bar with just search + bell.
   const isDashboard = pathname === '/';
+  // These emoji are followed by an explicit U+FE0F "variation selector-16"
+  // to force the color/emoji glyph. A few emoji (sun-behind-cloud among
+  // them) default to a plain monochrome *text* presentation when that
+  // selector is missing — which is why the afternoon greeting was showing
+  // up as a flat black icon instead of the colorful one.
   const [greeting, setGreeting] = useState('Good Morning ☀️');
   const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good Morning ☀️');
-    else if (hour < 18) setGreeting('Good Afternoon 🌤');
+    else if (hour < 18) setGreeting('Good Afternoon 🌤️');
     else setGreeting('Good Evening 🌙');
 
     setCurrentDate(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }));

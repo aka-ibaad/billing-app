@@ -86,7 +86,6 @@
 .formCardOuter {
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);
@@ -124,7 +123,6 @@
 .tableOuter {
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-xl);
   padding: 1px;
   border: 1px solid var(--color-border-subtle);

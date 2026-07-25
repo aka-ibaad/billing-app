@@ -18,15 +18,24 @@
   color: var(--color-text-primary);
 }
 
+/* Bento/masonry packing: a 2-col CSS grid sizes every card in a row to
+   the tallest one in that row (even with align-items: start, the ROW
+   itself is as tall as its tallest item, so a short card like "Default
+   Taxes" next to a tall one still gets a huge empty gap under its own
+   content once its border/background is drawn). CSS multi-column layout
+   has no such row concept — each card just flows into whichever column
+   has room next, so short and tall cards pack tightly against each other
+   instead of leaving matched dead space. */
 .content {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  align-items: start;
+  columns: 2;
+  column-gap: 20px;
 }
 
 .sectionFull {
-  grid-column: 1 / -1;
+  /* Breaks this card across both columns instead of living inside one of
+     them — used for Appearance, which is wide theme-preview tiles rather
+     than a form section. */
+  column-span: all;
 }
 
 .section {
@@ -35,11 +44,14 @@
   gap: 16px;
   background: var(--color-bg-secondary);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   padding: 24px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-sm), var(--inner-glow);
+  /* Required for multi-column flow: without this a tall card can get
+     split with its top half in one column and bottom half in the next. */
+  break-inside: avoid;
+  margin-bottom: 20px;
 }
 
 .sectionTitle {
@@ -233,7 +245,7 @@
 
 /* Base Actions */
 .formActions {
-  margin-top: 0;
+  margin-top: 4px;
   display: flex;
   justify-content: flex-start;
 }
@@ -296,7 +308,7 @@
 
 @media (max-width: 1100px) {
   .content {
-    grid-template-columns: 1fr;
+    columns: 1;
   }
 }
 
