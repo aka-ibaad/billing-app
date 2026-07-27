@@ -42,7 +42,6 @@ export async function createUser(formData: FormData) {
   if (error) throw error
 
   revalidatePath('/admin')
-  return data.user
 }
 
 export async function deleteUser(userId: string) {
