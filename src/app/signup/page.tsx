@@ -1,8 +1,8 @@
-import { login, signup } from './actions'
+import { signup } from '@/app/login/actions'
+import styles from '@/app/login/login.module.css'
 import Link from 'next/link'
-import styles from './login.module.css'
 
-export default async function LoginPage({
+export default async function SignupPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -17,8 +17,8 @@ export default async function LoginPage({
       
       <div className={styles.content}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Welcome back</h1>
-          <p className={styles.subtitle}>Sign in to your account to continue</p>
+          <h1 className={styles.title}>Create Account</h1>
+          <p className={styles.subtitle}>Sign up to request dashboard access</p>
         </div>
 
         <form className={styles.form}>
@@ -56,14 +56,14 @@ export default async function LoginPage({
             />
           </div>
 
-          <button formAction={login} className={styles.button}>
-            Sign In
+          <button formAction={signup} className={styles.button}>
+            Sign Up
           </button>
           
           <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
-            Don't have an account?{' '}
-            <Link href="/signup" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
-              Sign Up
+            Already have an account?{' '}
+            <Link href="/login" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+              Sign In
             </Link>
           </div>
         </form>
