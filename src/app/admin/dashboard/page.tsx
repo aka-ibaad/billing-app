@@ -123,7 +123,7 @@ export default async function AdminDashboard() {
                   </td>
                   <td>
                     {u.app_metadata?.role !== 'admin' && (
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', minWidth: '300px' }}>
                         {u.app_metadata?.status !== 'approved' && u.app_metadata?.status !== 'rejected' && (
                           <form action={approveUser.bind(null, u.id)}>
                             <button type="submit" className={styles.actionBtnPrimary}>Approve</button>
@@ -142,7 +142,7 @@ export default async function AdminDashboard() {
                         
                         <form action={changeUserPassword} style={{ display: 'flex', gap: '8px' }}>
                           <input type="hidden" name="userId" value={u.id} />
-                          <input type="password" name="password" placeholder="New Password" required style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-bg-tertiary)', color: 'white', width: '120px' }} />
+                          <input type="password" name="password" placeholder="Password" required style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-bg-tertiary)', color: 'white', width: '110px' }} />
                           <button type="submit" className={styles.secondaryButton} style={{ padding: '6px 12px', fontSize: '13px' }}>Reset</button>
                         </form>
 
