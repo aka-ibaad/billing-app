@@ -140,14 +140,10 @@ export default async function AdminDashboard() {
                           </form>
                         )}
                         
-                        <form action={changeUserPassword} style={{ display: 'flex', gap: '8px' }}>
+                        <form action={changeUserPassword} style={{ display: 'flex', gap: '6px' }}>
                           <input type="hidden" name="userId" value={u.id} />
-                          <input type="password" name="password" placeholder="Password" required style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-bg-tertiary)', color: 'white', width: '110px' }} />
-                          <button type="submit" className={styles.secondaryButton} style={{ padding: '6px 12px', fontSize: '13px' }}>Reset</button>
-                        </form>
-
-                        <form action={deleteUser.bind(null, u.id)}>
-                          <button type="submit" className={styles.actionBtnDanger}>Delete</button>
+                          <input type="password" name="password" placeholder="Password" required style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-bg-tertiary)', color: 'white', width: '90px', fontSize: '12px' }} />
+                          <button type="submit" className={styles.secondaryButton} style={{ padding: '4px 10px', fontSize: '12px' }}>Reset</button>
                         </form>
                       </div>
                     )}
