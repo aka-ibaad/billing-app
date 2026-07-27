@@ -8,7 +8,8 @@ export default async function AdminDashboard() {
 
   // Double check admin role here just for safety, though middleware handles it
   const { data: { user } } = await supabase.auth.getUser()
-  if (user?.email !== process.env.ADMIN_EMAIL) {
+  const role = user?.app_metadata?.role || 'merchant'
+  if (role !== 'admin') {
     redirect('/')
   }
 
@@ -77,14 +78,14 @@ export default async function AdminDashboard() {
                   <td>{u.email}</td>
                   <td>{new Date(u.created_at).toLocaleDateString()}</td>
                   <td>
-                    {u.email === process.env.ADMIN_EMAIL ? (
+                    {u.app_metadata?.role === 'admin' ? (
                       <span className={styles.badgeActive}>Admin</span>
                     ) : (
                       <span className={styles.badgeActive}>Active</span>
                     )}
                   </td>
                   <td>
-                    {u.email !== process.env.ADMIN_EMAIL && (
+                    {u.app_metadata?.role !== 'admin' && (
                       <form action={deleteUser.bind(null, u.id)}>
                         <button type="submit" className={styles.actionBtnDanger}>Delete</button>
                       </form>
