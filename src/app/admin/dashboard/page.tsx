@@ -123,7 +123,7 @@ export default async function AdminDashboard() {
                   </td>
                   <td>
                     {u.app_metadata?.role !== 'admin' && (
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', minWidth: '300px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
                         {u.app_metadata?.status !== 'approved' && u.app_metadata?.status !== 'rejected' && (
                           <form action={approveUser.bind(null, u.id)}>
                             <button type="submit" className={styles.actionBtnPrimary}>Approve</button>
