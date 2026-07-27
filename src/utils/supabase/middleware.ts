@@ -44,6 +44,32 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  const role = user?.app_metadata?.role || 'merchant'
+  const status = user?.app_metadata?.status || 'pending'
+
+  // Block unapproved non-admin users from accessing the app
+  if (
+    user && 
+    role !== 'admin' && 
+    status !== 'approved' && 
+    !request.nextUrl.pathname.startsWith('/pending') &&
+    !request.nextUrl.pathname.startsWith('/login') &&
+    !request.nextUrl.pathname.startsWith('/auth')
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/pending'
+    return NextResponse.redirect(url)
+  }
+
+  // Prevent users on /pending from accessing if they shouldn't be there
+  if (request.nextUrl.pathname.startsWith('/pending')) {
+    if (user && (role === 'admin' || status === 'approved')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Admin RBAC Check
   if (request.nextUrl.pathname.startsWith('/admin')) {
     const role = user?.app_metadata?.role || 'merchant'

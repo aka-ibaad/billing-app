@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { listUsers, createUser, deleteUser } from './actions'
+import { listUsers, deleteUser, approveUser, changeUserPassword } from './actions'
 import styles from './admin.module.css'
 import { redirect } from 'next/navigation'
 
@@ -54,12 +54,8 @@ export default async function AdminDashboard() {
         </div>
         
         <div className={styles.formContainer}>
-          <h3 className={styles.formTitle}>Create New Merchant</h3>
-          <form action={createUser} className={styles.createForm}>
-            <input type="email" name="email" placeholder="merchant@email.com" required className={styles.input} />
-            <input type="password" name="password" placeholder="Temporary Password" required className={styles.input} />
-            <button type="submit" className={styles.actionBtnPrimary}>Create Account</button>
-          </form>
+          <h3 className={styles.formTitle}>Admin Controls</h3>
+          <p className={styles.sectionDesc}>Manage access and credentials for users across the platform.</p>
         </div>
 
         <div className={styles.tableContainer}>
@@ -80,15 +76,31 @@ export default async function AdminDashboard() {
                   <td>
                     {u.app_metadata?.role === 'admin' ? (
                       <span className={styles.badgeActive}>Admin</span>
+                    ) : u.app_metadata?.status === 'approved' ? (
+                      <span className={styles.badgeActive}>Approved</span>
                     ) : (
-                      <span className={styles.badgeActive}>Active</span>
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: '#332b00', color: '#ffcc00' }}>Pending</span>
                     )}
                   </td>
                   <td>
                     {u.app_metadata?.role !== 'admin' && (
-                      <form action={deleteUser.bind(null, u.id)}>
-                        <button type="submit" className={styles.actionBtnDanger}>Delete</button>
-                      </form>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {u.app_metadata?.status !== 'approved' && (
+                          <form action={approveUser.bind(null, u.id)}>
+                            <button type="submit" className={styles.actionBtnPrimary}>Approve</button>
+                          </form>
+                        )}
+                        
+                        <form action={changeUserPassword} style={{ display: 'flex', gap: '8px' }}>
+                          <input type="hidden" name="userId" value={u.id} />
+                          <input type="password" name="password" placeholder="New Password" required style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-bg-tertiary)', color: 'white', width: '120px' }} />
+                          <button type="submit" className={styles.secondaryButton} style={{ padding: '6px 12px', fontSize: '13px' }}>Reset</button>
+                        </form>
+
+                        <form action={deleteUser.bind(null, u.id)}>
+                          <button type="submit" className={styles.actionBtnDanger}>Delete</button>
+                        </form>
+                      </div>
                     )}
                   </td>
                 </tr>

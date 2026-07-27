@@ -25,27 +25,47 @@ export async function listUsers() {
   return data.users
 }
 
-export async function createUser(formData: FormData) {
+export async function approveUser(userId: string) {
   await checkAdmin()
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-
-  if (!email || !password) {
-    throw new Error('Email and password are required')
-  }
-
+  
   const adminAuthClient = createAdminClient().auth.admin
-  const { data, error } = await adminAuthClient.createUser({
-    email,
-    password,
-    email_confirm: true, // Automatically confirm email for admin-created users
-  })
+  
+  // First, get the current user metadata so we don't overwrite it
+  const { data: userRecord, error: userError } = await adminAuthClient.getUserById(userId)
+  if (userError) throw userError
 
+  const currentMetadata = userRecord.user.app_metadata
+
+  const { error } = await adminAuthClient.updateUserById(userId, {
+    app_metadata: {
+      ...currentMetadata,
+      status: 'approved'
+    }
+  })
+  
   if (error) throw error
 
   revalidatePath('/admin')
 }
 
+export async function changeUserPassword(formData: FormData) {
+  await checkAdmin()
+  const userId = formData.get('userId') as string
+  const password = formData.get('password') as string
+
+  if (!userId || !password) {
+    throw new Error('User ID and password are required')
+  }
+
+  const adminAuthClient = createAdminClient().auth.admin
+  const { error } = await adminAuthClient.updateUserById(userId, {
+    password
+  })
+  
+  if (error) throw error
+
+  revalidatePath('/admin')
+}
 export async function deleteUser(userId: string) {
   await checkAdmin()
   
