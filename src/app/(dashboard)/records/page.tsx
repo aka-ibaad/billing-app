@@ -8,7 +8,7 @@ import {
   RevenueExpenseChart, MonthlyRevenueChart, PaymentMethodsChart,
   DailySalesChart, IncomeProfitChart
 } from '@/components/dashboard/DetailedCharts';
-import dashboardStyles from '@/app/page.module.css';
+import dashboardStyles from '@/app/(dashboard)/page.module.css';
 import styles from './page.module.css';
 
 export default function RecordsPage() {

@@ -4,7 +4,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, ComposedChart, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 import { motion } from 'framer-motion';
-import styles from '@/app/page.module.css'; // Reusing dashboard styles for consistency
+import styles from '@/app/(dashboard)/page.module.css'; // Reusing dashboard styles for consistency
 
 interface ChartProps {
   invoices: any[];
