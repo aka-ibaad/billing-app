@@ -5,6 +5,7 @@ import { useAppData, Tax } from '@/context/AppDataContext';
 import { useTheme, Theme } from '@/context/ThemeContext';
 import styles from './page.module.css';
 import { Sun, Moon, Monitor } from '@phosphor-icons/react';
+import { logout } from '@/app/login/actions';
 
 export default function SettingsPage() {
   const { settings, updateSettings, seedMockData } = useAppData();
@@ -561,6 +562,15 @@ export default function SettingsPage() {
               }}>
                 Seed Demo Data
               </button>
+            </div>
+
+            <div className={styles.formGroup} style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--color-border)' }}>
+              <h3 className={styles.sectionTitle} style={{ fontSize: '14px', marginBottom: '8px' }}>Account Access</h3>
+              <form action={logout}>
+                <button type="submit" className={styles.dangerButton}>
+                  Sign Out
+                </button>
+              </form>
             </div>
           </section>
 

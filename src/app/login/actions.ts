@@ -43,3 +43,11 @@ export async function signup(formData: FormData) {
   revalidatePath('/', 'layout')
   redirect('/login?message=Check email to continue sign in process')
 }
+
+export async function logout() {
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+  
+  revalidatePath('/', 'layout')
+  redirect('/login')
+}
