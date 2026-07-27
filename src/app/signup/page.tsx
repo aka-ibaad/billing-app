@@ -21,7 +21,7 @@ export default async function SignupPage({
           <p className={styles.subtitle}>Sign up to request dashboard access</p>
         </div>
 
-        <form className={styles.form}>
+        <form action={signup} className={styles.form}>
           {message && (
             <div className={message.includes('Check email') ? styles.message : styles.error}>
               {message}
@@ -84,7 +84,7 @@ export default async function SignupPage({
             />
           </div>
 
-          <button formAction={signup} className={styles.button}>
+          <button type="submit" className={styles.button}>
             Sign Up
           </button>
           
