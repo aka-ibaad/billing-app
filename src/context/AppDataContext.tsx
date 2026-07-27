@@ -193,33 +193,73 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     return { storedClients, storedInvoices };
   }, []);
 
-  // Load from localStorage on mount
+  // Load from Supabase on mount, fallback to local storage
   useEffect(() => {
-    const { storedClients, storedInvoices } = loadFromStorage();
+    const initializeData = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-    // Fallback mock data if empty
-    if (!storedClients && !storedInvoices) {
-      const now = new Date();
-      const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
-      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+        let hasRemoteData = false;
 
-      setClients([
-        { id: '1', name: 'Globex Inc', email: 'billing@globex.com', address: '100 Globe Way', createdAt: new Date().toISOString() },
-        { id: '2', name: 'Soylent Corp', email: 'accounts@soylent.com', address: '200 Soy St', createdAt: new Date().toISOString() }
-      ]);
-      setInvoices([
-        {
-          id: '1', clientId: '1', number: 'INV-2026-040', issueDate: tenDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
-          items: [{ id: 'i1', description: 'Web Design', quantity: 1, rate: 1200 }], status: 'Paid', notes: ''
-        },
-        {
-          id: '2', clientId: '2', number: 'INV-2026-039', issueDate: twoDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
-          items: [{ id: 'i2', description: 'Consulting', quantity: 40, rate: 210 }], status: 'Overdue', notes: ''
+        if (user && user.app_metadata?.role !== 'admin') {
+          // Fetch synced data
+          const { data, error } = await supabase
+            .from('user_data_sync')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (!error && data) {
+            hasRemoteData = true;
+            if (data.clients) setClients(typeof data.clients === 'string' ? JSON.parse(data.clients) : data.clients);
+            if (data.invoices) setInvoices(typeof data.invoices === 'string' ? JSON.parse(data.invoices) : data.invoices);
+            if (data.expenses) setExpenses(typeof data.expenses === 'string' ? JSON.parse(data.expenses) : data.expenses);
+            if (data.products) setProducts(typeof data.products === 'string' ? JSON.parse(data.products) : data.products);
+            
+            // If they provided company name in metadata but it hasn't propagated to settings, sync it down
+            const settingsObj = data.settings ? (typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings) : defaultSettings;
+            if (user.user_metadata?.company_name && settingsObj.businessName === defaultSettings.businessName) {
+              settingsObj.businessName = user.user_metadata.company_name;
+            }
+            setSettings(settingsObj);
+          }
         }
-      ]);
-    }
-    setIsLoaded(true);
-  }, []);
+
+        if (!hasRemoteData) {
+          const { storedClients, storedInvoices } = loadFromStorage();
+
+          // Fallback mock data if empty
+          if (!storedClients && !storedInvoices) {
+            const now = new Date();
+            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+            const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+
+            setClients([
+              { id: '1', name: 'Globex Inc', email: 'billing@globex.com', address: '100 Globe Way', createdAt: new Date().toISOString() },
+              { id: '2', name: 'Soylent Corp', email: 'accounts@soylent.com', address: '200 Soy St', createdAt: new Date().toISOString() }
+            ]);
+            setInvoices([
+              {
+                id: '1', clientId: '1', number: 'INV-2026-040', issueDate: tenDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
+                items: [{ id: 'i1', description: 'Web Design', quantity: 1, rate: 1200 }], status: 'Paid', notes: ''
+              },
+              {
+                id: '2', clientId: '2', number: 'INV-2026-039', issueDate: twoDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
+                items: [{ id: 'i2', description: 'Consulting', quantity: 40, rate: 210 }], status: 'Overdue', notes: ''
+              }
+            ]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to initialize data from Supabase:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    initializeData();
+  }, [loadFromStorage]);
 
   // Smart Notifications logic
   useEffect(() => {

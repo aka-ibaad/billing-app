@@ -96,6 +96,28 @@ export async function changeUserPassword(formData: FormData) {
 
   revalidatePath('/admin/dashboard')
 }
+export async function rejectUser(userId: string) {
+  await checkAdmin()
+  
+  const adminAuthClient = createAdminClient().auth.admin
+  
+  const { data: userRecord, error: userError } = await adminAuthClient.getUserById(userId)
+  if (userError) throw userError
+
+  const currentMetadata = userRecord.user.app_metadata
+
+  const { error } = await adminAuthClient.updateUserById(userId, {
+    app_metadata: {
+      ...currentMetadata,
+      status: 'rejected'
+    }
+  })
+  
+  if (error) throw error
+
+  revalidatePath('/admin/dashboard')
+}
+
 export async function deleteUser(userId: string) {
   await checkAdmin()
   

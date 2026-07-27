@@ -29,6 +29,34 @@ export default async function SignupPage({
           )}
 
           <div className={styles.inputGroup}>
+            <label className={styles.label} htmlFor="companyName">
+              Company Name
+            </label>
+            <input
+              className={styles.input}
+              id="companyName"
+              name="companyName"
+              type="text"
+              placeholder="Acme Corp"
+              required
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.label} htmlFor="userName">
+              Your Name
+            </label>
+            <input
+              className={styles.input}
+              id="userName"
+              name="userName"
+              type="text"
+              placeholder="John Doe"
+              required
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
             <label className={styles.label} htmlFor="email">
               Email
             </label>

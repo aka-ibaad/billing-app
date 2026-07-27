@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         invoices: data.invoices,
         expenses: data.expenses,
         products: data.products,
+        settings: data.settings,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 

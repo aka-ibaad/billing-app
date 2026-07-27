@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { listUsers, deleteUser, approveUser, suspendUser, changeUserPassword, getUsersSyncData } from './actions'
+import { listUsers, deleteUser, approveUser, suspendUser, rejectUser, changeUserPassword, getUsersSyncData } from './actions'
 import styles from './admin.module.css'
 import { redirect } from 'next/navigation'
 
@@ -77,6 +77,7 @@ export default async function AdminDashboard() {
           <table className={styles.table}>
             <thead>
               <tr>
+                <th>Company / Name</th>
                 <th>Email</th>
                 <th>Joined</th>
                 <th>Sync Activity</th>
@@ -91,6 +92,10 @@ export default async function AdminDashboard() {
                 const clients = ud?.clients ? (typeof ud.clients === 'string' ? JSON.parse(ud.clients) : ud.clients) : [];
                 return (
                 <tr key={u.id}>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{u.user_metadata?.company_name || 'N/A'}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>{u.user_metadata?.user_name || 'N/A'}</div>
+                  </td>
                   <td>{u.email}</td>
                   <td>{new Date(u.created_at).toLocaleDateString()}</td>
                   <td style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
@@ -110,6 +115,8 @@ export default async function AdminDashboard() {
                       <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: '#330000', color: '#ff3333' }}>Suspended</span>
                     ) : u.app_metadata?.status === 'approved' ? (
                       <span className={styles.badgeActive}>Approved</span>
+                    ) : u.app_metadata?.status === 'rejected' ? (
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: '#330000', color: '#ff3333' }}>Rejected</span>
                     ) : (
                       <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: '#332b00', color: '#ffcc00' }}>Pending</span>
                     )}
@@ -117,9 +124,14 @@ export default async function AdminDashboard() {
                   <td>
                     {u.app_metadata?.role !== 'admin' && (
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {u.app_metadata?.status !== 'approved' && (
+                        {u.app_metadata?.status !== 'approved' && u.app_metadata?.status !== 'rejected' && (
                           <form action={approveUser.bind(null, u.id)}>
                             <button type="submit" className={styles.actionBtnPrimary}>Approve</button>
+                          </form>
+                        )}
+                        {u.app_metadata?.status === 'pending' && (
+                          <form action={rejectUser.bind(null, u.id)}>
+                            <button type="submit" className={styles.actionBtnDanger}>Reject</button>
                           </form>
                         )}
                         {u.app_metadata?.status === 'approved' && (
@@ -144,7 +156,7 @@ export default async function AdminDashboard() {
               )})}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>No users found. Make sure your service role key is correct.</td>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>No users found. Make sure your service role key is correct.</td>
                 </tr>
               )}
             </tbody>

@@ -36,18 +36,33 @@ export async function signup(formData: FormData) {
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const companyName = formData.get('companyName') as string
+  const userName = formData.get('userName') as string
+
+  if (!companyName || !userName) {
+    redirect('/signup?message=Company Name and Your Name are required')
+  }
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        company_name: companyName,
+        user_name: userName,
+      }
+    }
   })
 
   if (error) {
-    redirect('/login?message=Could not authenticate user')
+    if (error.message.includes('already registered')) {
+      redirect('/signup?message=Email already in use')
+    }
+    redirect('/signup?message=Could not create account: ' + error.message)
   }
 
   revalidatePath('/', 'layout')
-  redirect('/login?message=Check email to continue sign in process')
+  redirect('/pending')
 }
 
 export async function logout() {
