@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { listUsers, deleteUser, approveUser, changeUserPassword } from './actions'
+import { listUsers, deleteUser, approveUser, suspendUser, changeUserPassword, getUsersSyncData } from './actions'
 import styles from './admin.module.css'
 import { redirect } from 'next/navigation'
 
@@ -15,11 +15,26 @@ export default async function AdminDashboard() {
 
   // Fetch actual users using the Admin API
   let users: any[] = []
+  let syncData: any[] = []
   try {
     users = await listUsers()
+    syncData = await getUsersSyncData()
   } catch (error) {
-    console.error('Failed to list users', error)
+    console.error('Failed to fetch admin data', error)
   }
+
+  // Calculate some platform totals from the sync data
+  let totalPlatformMRR = 0;
+  syncData.forEach(sd => {
+    if (sd.invoices) {
+      const invoices = typeof sd.invoices === 'string' ? JSON.parse(sd.invoices) : sd.invoices;
+      invoices.forEach((inv: any) => {
+        if (inv.status === 'Paid') {
+          totalPlatformMRR += inv.items?.reduce((sum: number, item: any) => sum + (item.rate * item.quantity), 0) || 0;
+        }
+      });
+    }
+  });
 
   return (
     <div className={styles.container}>
@@ -36,15 +51,15 @@ export default async function AdminDashboard() {
         </div>
         
         <div className={styles.statCard}>
-          <div className={styles.statLabel}>Platform MRR</div>
-          <div className={styles.statValue}>$4,250</div>
-          <div className={styles.statTrend}>+12.5% this month</div>
+          <div className={styles.statLabel}>Platform Processed</div>
+          <div className={styles.statValue}>${totalPlatformMRR.toLocaleString()}</div>
+          <div className={styles.statTrend}>Based on synced data</div>
         </div>
         
         <div className={styles.statCard}>
-          <div className={styles.statLabel}>Active Sessions</div>
-          <div className={styles.statValue}>8</div>
-          <div className={styles.statTrend}>Real-time</div>
+          <div className={styles.statLabel}>Active Syncs</div>
+          <div className={styles.statValue}>{syncData.length}</div>
+          <div className={styles.statTrend}>Reporting local data</div>
         </div>
       </div>
 
@@ -64,18 +79,35 @@ export default async function AdminDashboard() {
               <tr>
                 <th>Email</th>
                 <th>Joined</th>
+                <th>Sync Activity</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {users.map((u) => {
+                const ud = syncData.find(d => d.user_id === u.id);
+                const invoices = ud?.invoices ? (typeof ud.invoices === 'string' ? JSON.parse(ud.invoices) : ud.invoices) : [];
+                const clients = ud?.clients ? (typeof ud.clients === 'string' ? JSON.parse(ud.clients) : ud.clients) : [];
+                return (
                 <tr key={u.id}>
                   <td>{u.email}</td>
                   <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                  <td style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                    {ud ? (
+                      <div>
+                        <div><b>Inv:</b> {invoices.length} | <b>Cli:</b> {clients.length}</div>
+                        <div style={{ fontSize: '11px', marginTop: '4px' }}>Last sync: {new Date(ud.updated_at).toLocaleDateString()}</div>
+                      </div>
+                    ) : (
+                      'No sync data'
+                    )}
+                  </td>
                   <td>
                     {u.app_metadata?.role === 'admin' ? (
                       <span className={styles.badgeActive}>Admin</span>
+                    ) : u.app_metadata?.status === 'suspended' ? (
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', background: '#330000', color: '#ff3333' }}>Suspended</span>
                     ) : u.app_metadata?.status === 'approved' ? (
                       <span className={styles.badgeActive}>Approved</span>
                     ) : (
@@ -88,6 +120,11 @@ export default async function AdminDashboard() {
                         {u.app_metadata?.status !== 'approved' && (
                           <form action={approveUser.bind(null, u.id)}>
                             <button type="submit" className={styles.actionBtnPrimary}>Approve</button>
+                          </form>
+                        )}
+                        {u.app_metadata?.status === 'approved' && (
+                          <form action={suspendUser.bind(null, u.id)}>
+                            <button type="submit" className={styles.actionBtnDanger}>Suspend</button>
                           </form>
                         )}
                         
@@ -104,10 +141,10 @@ export default async function AdminDashboard() {
                     )}
                   </td>
                 </tr>
-              ))}
+              )})}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>No users found. Make sure your service role key is correct.</td>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>No users found. Make sure your service role key is correct.</td>
                 </tr>
               )}
             </tbody>

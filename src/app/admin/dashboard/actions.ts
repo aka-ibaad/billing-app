@@ -25,6 +25,14 @@ export async function listUsers() {
   return data.users
 }
 
+export async function getUsersSyncData() {
+  await checkAdmin()
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient.from('user_data_sync').select('*')
+  if (error) throw error
+  return data || []
+}
+
 export async function approveUser(userId: string) {
   await checkAdmin()
   
@@ -45,7 +53,29 @@ export async function approveUser(userId: string) {
   
   if (error) throw error
 
-  revalidatePath('/admin')
+  revalidatePath('/admin/dashboard')
+}
+
+export async function suspendUser(userId: string) {
+  await checkAdmin()
+  
+  const adminAuthClient = createAdminClient().auth.admin
+  
+  const { data: userRecord, error: userError } = await adminAuthClient.getUserById(userId)
+  if (userError) throw userError
+
+  const currentMetadata = userRecord.user.app_metadata
+
+  const { error } = await adminAuthClient.updateUserById(userId, {
+    app_metadata: {
+      ...currentMetadata,
+      status: 'suspended'
+    }
+  })
+  
+  if (error) throw error
+
+  revalidatePath('/admin/dashboard')
 }
 
 export async function changeUserPassword(formData: FormData) {
@@ -64,7 +94,7 @@ export async function changeUserPassword(formData: FormData) {
   
   if (error) throw error
 
-  revalidatePath('/admin')
+  revalidatePath('/admin/dashboard')
 }
 export async function deleteUser(userId: string) {
   await checkAdmin()
@@ -74,5 +104,5 @@ export async function deleteUser(userId: string) {
   
   if (error) throw error
 
-  revalidatePath('/admin')
+  revalidatePath('/admin/dashboard')
 }

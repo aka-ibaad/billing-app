@@ -63,10 +63,16 @@ export async function updateSession(request: NextRequest) {
 
   // Prevent users on /pending from accessing if they shouldn't be there
   if (request.nextUrl.pathname.startsWith('/pending')) {
-    if (user && (role === 'admin' || status === 'approved')) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
+    if (user) {
+      if (role === 'admin') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin/dashboard'
+        return NextResponse.redirect(url)
+      } else if (status === 'approved') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
     }
   }
 
@@ -76,7 +82,22 @@ export async function updateSession(request: NextRequest) {
     if (!user || role !== 'admin') {
       // Redirect unauthorized users away from admin dashboard
       const url = request.nextUrl.clone()
-      url.pathname = '/'
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Redirect root to dashboard if logged in
+  if (request.nextUrl.pathname === '/') {
+    if (user) {
+      const url = request.nextUrl.clone()
+      if (role === 'admin') {
+        url.pathname = '/admin/dashboard'
+      } else if (status === 'approved') {
+        url.pathname = '/dashboard'
+      } else {
+        url.pathname = '/pending'
+      }
       return NextResponse.redirect(url)
     }
   }

@@ -25,9 +25,9 @@ export async function login(formData: FormData) {
   
   const role = data?.user?.app_metadata?.role
   if (role === 'admin') {
-    redirect('/admin')
+    redirect('/admin/dashboard')
   } else {
-    redirect('/')
+    redirect('/dashboard')
   }
 }
 

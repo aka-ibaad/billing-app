@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import { syncToSupabase } from '@/utils/sync';
+import { createClient } from '@/utils/supabase/client';
 
 export type Client = {
   id: string;
@@ -298,6 +300,28 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('billing_expenses', JSON.stringify(expenses));
       localStorage.setItem('billing_notifications', JSON.stringify(notifications));
       localStorage.setItem('billing_monthly_goal', JSON.stringify(monthlyRevenueGoal));
+
+      // Background sync to Supabase for admin monitoring
+      const syncData = async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.app_metadata?.role !== 'admin') {
+          syncToSupabase(user.id, {
+            clients,
+            invoices,
+            settings,
+            products,
+            expenses
+          });
+        }
+      };
+      
+      // Debounce the sync slightly to avoid spamming the API on rapid changes
+      const timeoutId = setTimeout(() => {
+        syncData();
+      }, 2000);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [clients, invoices, settings, products, expenses, notifications, monthlyRevenueGoal, isLoaded]);
 

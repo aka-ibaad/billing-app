@@ -9,17 +9,17 @@ import styles from './Navigation.module.css';
 import { useAppData } from '@/context/AppDataContext';
 
 const navItems = [
-  { id: 'dashboard', path: '/', label: 'Overview', icon: SquaresFour },
-  { id: 'invoices', path: '/invoices', label: 'Invoices', icon: FileText },
-  { id: 'clients', path: '/clients', label: 'Clients', icon: Users },
-  { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt },
+  { id: 'dashboard', path: '/dashboard', label: 'Overview', icon: SquaresFour },
+  { id: 'invoices', path: '/dashboard/invoices', label: 'Invoices', icon: FileText },
+  { id: 'clients', path: '/dashboard/clients', label: 'Clients', icon: Users },
+  { id: 'expenses', path: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
   // 5th item for mobile bottom bar
-  { id: 'menu', path: '/settings', label: 'Menu', icon: Gear, mobileOnly: true },
+  { id: 'menu', path: '/dashboard/settings', label: 'Menu', icon: Gear, mobileOnly: true },
   
   // Extra desktop items (hidden on mobile)
-  { id: 'products', path: '/products', label: 'Products', icon: ChartLineUp, desktopOnly: true },
-  { id: 'records', path: '/records', label: 'Records', icon: FileText, desktopOnly: true },
-  { id: 'insights', path: '/insights', label: 'Insights', icon: Sparkle, desktopOnly: true },
+  { id: 'products', path: '/dashboard/products', label: 'Products', icon: ChartLineUp, desktopOnly: true },
+  { id: 'records', path: '/dashboard/records', label: 'Records', icon: FileText, desktopOnly: true },
+  { id: 'insights', path: '/dashboard/insights', label: 'Insights', icon: Sparkle, desktopOnly: true },
 ];
 
 // Mobile floating pill nav: only the 4 most-used destinations get a slot
@@ -28,17 +28,17 @@ const navItems = [
 // else (Products, Records, Insights, Settings) lives one tap away behind
 // the hamburger so the bar itself doesn't get crowded on a phone screen.
 const mobilePrimaryItems = [
-  { id: 'invoices', path: '/invoices', label: 'Invoices', icon: FileText },
-  { id: 'clients', path: '/clients', label: 'Clients', icon: Users },
-  { id: 'dashboard', path: '/', label: 'Dashboard', icon: SquaresFour, center: true },
-  { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt },
+  { id: 'invoices', path: '/dashboard/invoices', label: 'Invoices', icon: FileText },
+  { id: 'clients', path: '/dashboard/clients', label: 'Clients', icon: Users },
+  { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: SquaresFour, center: true },
+  { id: 'expenses', path: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
 ];
 
 const mobileMoreItems = [
-  { id: 'products', path: '/products', label: 'Products', icon: ChartLineUp },
-  { id: 'records', path: '/records', label: 'Records', icon: FileText },
-  { id: 'insights', path: '/insights', label: 'Insights', icon: Sparkle },
-  { id: 'settings', path: '/settings', label: 'Settings', icon: Gear },
+  { id: 'products', path: '/dashboard/products', label: 'Products', icon: ChartLineUp },
+  { id: 'records', path: '/dashboard/records', label: 'Records', icon: FileText },
+  { id: 'insights', path: '/dashboard/insights', label: 'Insights', icon: Sparkle },
+  { id: 'settings', path: '/dashboard/settings', label: 'Settings', icon: Gear },
 ];
 
 export default function Navigation() {
@@ -50,7 +50,7 @@ export default function Navigation() {
   const initials = businessName.substring(0, 2).toUpperCase();
   const isPro = settings.plan === 'pro';
 
-  const isItemActive = (path: string) => pathname === path || (path !== '/' && pathname.startsWith(path));
+  const isItemActive = (path: string) => pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
 
   return (
     <>
@@ -90,7 +90,7 @@ export default function Navigation() {
         <ul className={styles.navList}>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+            const isActive = pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(item.path));
             return (
               <li 
                 key={item.id} 
@@ -145,7 +145,7 @@ export default function Navigation() {
             the badge fits better next to the business identity it
             describes than next to a plain "Settings" link). This is now
             just a settings shortcut, not a second identity card. */}
-        <Link href="/settings" className={styles.profileSection}>
+        <Link href="/dashboard/settings" className={styles.profileSection}>
           <div className={styles.profileInfo}>
             <span className={styles.profileName}>Settings</span>
           </div>
