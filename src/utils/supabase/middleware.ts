@@ -46,8 +46,8 @@ export async function updateSession(request: NextRequest) {
 
   // Admin RBAC Check
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    const adminEmail = process.env.ADMIN_EMAIL
-    if (!user || user.email !== adminEmail) {
+    const role = user?.app_metadata?.role || 'merchant'
+    if (!user || role !== 'admin') {
       // Redirect unauthorized users away from admin dashboard
       const url = request.nextUrl.clone()
       url.pathname = '/'

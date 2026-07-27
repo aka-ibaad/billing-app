@@ -8,7 +8,9 @@ import { revalidatePath } from 'next/cache'
 async function checkAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+  const role = user?.app_metadata?.role || 'merchant'
+  
+  if (!user || role !== 'admin') {
     throw new Error('Unauthorized')
   }
 }
