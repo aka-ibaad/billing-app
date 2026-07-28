@@ -12,7 +12,14 @@
 // for hashed static assets (/_next/static/**) since those are immutable —
 // same hash always means same content, safe to cache indefinitely.
 
-const CACHE_NAME = 'bespoke-billing-shell-v1';
+// Bumped to v2: middleware used to redirect unauthenticated /manifest.json
+// requests to /login, so anyone who installed this service worker before
+// that was fixed may have cached the login page's HTML under the
+// /manifest.json cache key. The activate handler below deletes any cache
+// whose name doesn't match CACHE_NAME, so bumping this forces a clean
+// re-fetch of the app shell instead of continuing to serve that stale,
+// broken entry.
+const CACHE_NAME = 'bespoke-billing-shell-v2';
 const APP_SHELL = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {

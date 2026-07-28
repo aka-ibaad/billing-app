@@ -12,7 +12,13 @@
 
 .content {
   width: 100%;
-  max-width: 420px;
+  /* Overridable via --auth-card-width rather than a competing max-width
+     declaration in another CSS module (e.g. signup's wider 2-column card)
+     — that would depend on unpredictable stylesheet ordering between two
+     separately-imported modules. A custom property is a value input, not a
+     second rule fighting for the cascade, so it's deterministic regardless
+     of import order. */
+  max-width: var(--auth-card-width, 420px);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);

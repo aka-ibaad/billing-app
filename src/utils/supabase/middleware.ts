@@ -1,7 +1,33 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Requests for these are meant to work for anyone, logged in or not — a
+// browser fetches manifest.json and registers sw.js on every page load
+// (including /login itself, before any session exists), and the pwa-icon /
+// apple-icon / icon routes back the <link rel="icon"> tags in <head>. The
+// matcher in src/proxy.ts only excludes a handful of static image
+// extensions, so without this allowlist these requests fell through to the
+// "no user -> redirect to /login" check below. That meant an unauthenticated
+// visitor's manifest.json request came back as the /login page's HTML
+// instead of JSON, which is why the browser console showed
+// "Manifest: Line: 1, column: 1, Syntax error" — it was trying to parse a
+// full HTML redirect target as JSON.
+// Plain startsWith (no trailing-slash requirement) on purpose: Next's
+// file-based icon routes (icon.tsx, apple-icon.tsx) get served with a
+// generated extension appended — /icon.png, /apple-icon.png?<hash>, etc. —
+// not at the bare /icon path, so a stricter "/icon/" prefix match would
+// miss the actual request.
+const PUBLIC_ASSET_PREFIXES = ['/manifest.json', '/sw.js', '/apple-icon', '/icon', '/pwa-icon']
+
+function isPublicAsset(pathname: string) {
+  return PUBLIC_ASSET_PREFIXES.some(p => pathname.startsWith(p))
+}
+
 export async function updateSession(request: NextRequest) {
+  if (isPublicAsset(request.nextUrl.pathname)) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })

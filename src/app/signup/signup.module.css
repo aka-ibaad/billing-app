@@ -1,0 +1,30 @@
+/* Signup-specific layout on top of the shared login.module.css look
+   (reused for input/label/button/error styling so both auth pages stay
+   visually identical). Signup has twice as many fields as login, so they're
+   paired into a 2-column "bento" grid — the same grid-pairing convention
+   the Settings page uses for its own form rows — instead of stacking four
+   full-width fields into one tall column. */
+
+.wideContent {
+  /* Sets the custom property login.module.css's .content reads for its
+     max-width (see the comment there) — login's card stays 420px, sized
+     for a 2-field form; signup's two columns of inputs need more room
+     before they feel cramped. */
+  --auth-card-width: 560px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 540px) {
+  .wideContent {
+    --auth-card-width: 420px;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
