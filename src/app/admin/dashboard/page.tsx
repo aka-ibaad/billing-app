@@ -3,7 +3,7 @@ import { listUsers, deleteUser, approveUser, suspendUser, rejectUser, changeUser
 import { ConfirmForm, SubmitButton } from './ConfirmForm'
 import styles from './admin.module.css'
 import { redirect } from 'next/navigation'
-import { Buildings, Receipt, ArrowsClockwise, Clock, UsersThree } from '@phosphor-icons/react'
+import { Buildings, Receipt, ArrowsClockwise, Clock, UsersThree } from './icons'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()

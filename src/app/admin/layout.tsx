@@ -1,3 +1,14 @@
+'use client'
+
+// Phosphor's icon components create a React Context at module load time,
+// which the RSC (Server Component) build of React doesn't support — that's
+// what broke the Vercel build here. Marking this file 'use client' puts it
+// (and the icon imports below) on the client bundle, same as every other
+// place in this app that renders these icons (e.g. Navigation.tsx). It's
+// safe to do here: this layout has no server-only logic of its own, and
+// `children` (the async /admin/dashboard page) is still rendered as a
+// Server Component — Next composes it in from the parent tree rather than
+// this file importing it, so it isn't pulled into the client bundle.
 import React from 'react'
 import { logout } from '@/app/login/actions'
 import styles from './adminLayout.module.css'
