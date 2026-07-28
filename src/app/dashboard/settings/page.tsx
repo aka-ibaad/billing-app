@@ -6,6 +6,9 @@ import { useTheme, Theme } from '@/context/ThemeContext';
 import styles from './page.module.css';
 import { Sun, Moon, Monitor } from '@phosphor-icons/react';
 import { logout } from '@/app/login/actions';
+import SubmitButton from '@/components/SubmitButton';
+
+type UploadField = 'logoUrl' | 'avatarUrl' | 'signatureUrl' | 'letterheadUrl';
 
 export default function SettingsPage() {
   const { settings, updateSettings, seedMockData } = useAppData();
@@ -34,7 +37,10 @@ export default function SettingsPage() {
   });
 
   const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [uploadError, setUploadError] = useState<string>('');
+  const [uploadingField, setUploadingField] = useState<UploadField | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +72,10 @@ export default function SettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
+    setIsSaving(true);
     updateSettings(formData);
+    setIsSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -79,9 +88,15 @@ export default function SettingsPage() {
         return;
       }
       setUploadError('');
+      setUploadingField('logoUrl');
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, logoUrl: reader.result as string }));
+        setUploadingField(null);
+      };
+      reader.onerror = () => {
+        setUploadError('Could not read that file. Please try again.');
+        setUploadingField(null);
       };
       reader.readAsDataURL(file);
     }
@@ -96,9 +111,15 @@ export default function SettingsPage() {
         return;
       }
       setUploadError('');
+      setUploadingField(field);
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, [field]: reader.result as string }));
+        setUploadingField(null);
+      };
+      reader.onerror = () => {
+        setUploadError('Could not read that file. Please try again.');
+        setUploadingField(null);
       };
       reader.readAsDataURL(file);
     }
@@ -270,8 +291,14 @@ export default function SettingsPage() {
                   onChange={e => handleImageUpload(e, 'avatarUrl')}
                   style={{ display: 'none' }}
                 />
-                <button type="button" onClick={() => avatarInputRef.current?.click()} className={styles.secondaryButton}>
-                  Upload Photo
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className={styles.secondaryButton}
+                  disabled={uploadingField === 'avatarUrl'}
+                  aria-busy={uploadingField === 'avatarUrl'}
+                >
+                  {uploadingField === 'avatarUrl' ? 'Uploading…' : 'Upload Photo'}
                 </button>
                 {formData.avatarUrl && (
                   <button type="button" onClick={() => setFormData({...formData, avatarUrl: ''})} className={styles.dangerButton}>
@@ -299,8 +326,14 @@ export default function SettingsPage() {
                   onChange={handleLogoUpload}
                   style={{ display: 'none' }}
                 />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className={styles.secondaryButton}>
-                  Upload Logo
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={styles.secondaryButton}
+                  disabled={uploadingField === 'logoUrl'}
+                  aria-busy={uploadingField === 'logoUrl'}
+                >
+                  {uploadingField === 'logoUrl' ? 'Uploading…' : 'Upload Logo'}
                 </button>
                 {formData.logoUrl && (
                   <button type="button" onClick={() => setFormData({...formData, logoUrl: ''})} className={styles.dangerButton}>
@@ -324,8 +357,14 @@ export default function SettingsPage() {
                   onChange={e => handleImageUpload(e, 'signatureUrl')}
                   style={{ display: 'none' }}
                 />
-                <button type="button" onClick={() => signatureInputRef.current?.click()} className={styles.secondaryButton}>
-                  Upload Signature
+                <button
+                  type="button"
+                  onClick={() => signatureInputRef.current?.click()}
+                  className={styles.secondaryButton}
+                  disabled={uploadingField === 'signatureUrl'}
+                  aria-busy={uploadingField === 'signatureUrl'}
+                >
+                  {uploadingField === 'signatureUrl' ? 'Uploading…' : 'Upload Signature'}
                 </button>
                 {formData.signatureUrl && (
                   <button type="button" onClick={() => setFormData({...formData, signatureUrl: ''})} className={styles.dangerButton}>
@@ -349,8 +388,14 @@ export default function SettingsPage() {
                   onChange={e => handleImageUpload(e, 'letterheadUrl')}
                   style={{ display: 'none' }}
                 />
-                <button type="button" onClick={() => letterheadInputRef.current?.click()} className={styles.secondaryButton}>
-                  Upload Letterhead
+                <button
+                  type="button"
+                  onClick={() => letterheadInputRef.current?.click()}
+                  className={styles.secondaryButton}
+                  disabled={uploadingField === 'letterheadUrl'}
+                  aria-busy={uploadingField === 'letterheadUrl'}
+                >
+                  {uploadingField === 'letterheadUrl' ? 'Uploading…' : 'Upload Letterhead'}
                 </button>
                 {formData.letterheadUrl && (
                   <button type="button" onClick={() => setFormData({...formData, letterheadUrl: ''})} className={styles.dangerButton}>
@@ -554,13 +599,22 @@ export default function SettingsPage() {
             </div>
             
             <div className={styles.formGroup}>
-              <button type="button" className={styles.secondaryButton} onClick={() => {
-                if (window.confirm('This will replace current data with mock data. Continue?')) {
-                  seedMockData();
-                  alert('Demo data seeded successfully! Go to the Dashboard to see it.');
-                }
-              }}>
-                Seed Demo Data
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={isSeeding}
+                aria-busy={isSeeding}
+                onClick={() => {
+                  if (isSeeding) return;
+                  if (window.confirm('This will replace current data with mock data. Continue?')) {
+                    setIsSeeding(true);
+                    seedMockData();
+                    setIsSeeding(false);
+                    alert('Demo data seeded successfully! Go to the Dashboard to see it.');
+                  }
+                }}
+              >
+                {isSeeding ? 'Seeding…' : 'Seed Demo Data'}
               </button>
             </div>
 
@@ -569,19 +623,19 @@ export default function SettingsPage() {
 
       </div>
       <div className={styles.formActions}>
-        <button type="submit" className={styles.submitButton}>
-          {saved ? 'Saved Successfully' : 'Save All Settings'}
+        <button type="submit" className={styles.submitButton} disabled={isSaving} aria-busy={isSaving}>
+          {isSaving ? 'Saving…' : saved ? 'Saved Successfully' : 'Save All Settings'}
         </button>
       </div>
       </form>
-      
+
       <div style={{ marginTop: '32px', padding: '24px', background: 'var(--color-bg-secondary)', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
         <h3 className={styles.sectionTitle} style={{ fontSize: '14px', marginBottom: '8px' }}>Account Access</h3>
         <p className={styles.sectionDesc}>Sign out of your active session.</p>
         <form action={logout}>
-          <button type="submit" className={styles.dangerButton}>
+          <SubmitButton className={styles.dangerButton} pendingLabel="Signing out…">
             Sign Out
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

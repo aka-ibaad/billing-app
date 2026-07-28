@@ -14,6 +14,7 @@ import styles from './page.module.css';
 export default function RecordsPage() {
   const { invoices, clients, expenses, products } = useAppData();
   const [dateRange, setDateRange] = useState('month');
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const filteredInvoices = useMemo(() => {
     const now = new Date();
@@ -55,7 +56,14 @@ export default function RecordsPage() {
   }, [filteredInvoices]);
 
   const handlePrint = () => {
+    // window.print() blocks until the dialog is dismissed in most browsers,
+    // but not reliably in every environment (some render it asynchronously),
+    // so this still guards against a rapid double-click queuing up a second
+    // print dialog behind the first.
+    if (isPrinting) return;
+    setIsPrinting(true);
     window.print();
+    setIsPrinting(false);
   };
 
   return (
@@ -79,9 +87,9 @@ export default function RecordsPage() {
             <option value="year">Past Year</option>
             <option value="all">All Time</option>
           </select>
-          <button className={styles.primaryButton} onClick={handlePrint}>
+          <button className={styles.primaryButton} onClick={handlePrint} disabled={isPrinting} aria-busy={isPrinting}>
             <Printer size={18} />
-            Print Report
+            {isPrinting ? 'Opening…' : 'Print Report'}
           </button>
         </div>
       </header>

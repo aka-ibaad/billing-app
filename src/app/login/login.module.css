@@ -116,6 +116,17 @@
   transform: translateY(1px);
 }
 
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .secondaryButton {
   background-color: transparent;
   color: var(--color-text-secondary);
@@ -137,17 +148,6 @@
   text-align: center;
   margin-bottom: var(--space-4);
   border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-.message {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: var(--color-chart-blue);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  text-align: center;
-  margin-bottom: var(--space-4);
-  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 /* Background aesthetic elements */

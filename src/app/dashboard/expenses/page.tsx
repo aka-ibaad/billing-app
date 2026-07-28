@@ -20,6 +20,8 @@ function ExpensesContent() {
   const { expenses, addExpense, updateExpense, deleteExpense } = useAppData();
   const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -33,10 +35,13 @@ function ExpensesContent() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!newExpense.payeeName) return;
+    setIsSaving(true);
     addExpense(newExpense);
     setNewExpense(emptyExpense);
     setIsCreating(false);
+    setIsSaving(false);
   };
 
   const handleToggleCreate = () => {
@@ -48,8 +53,11 @@ function ExpensesContent() {
   };
 
   const handleDeleteExpense = (id: string, payeeName: string) => {
+    if (deletingId) return;
     if (window.confirm(`Delete this expense for "${payeeName}"? This cannot be undone.`)) {
+      setDeletingId(id);
       deleteExpense(id);
+      setDeletingId(null);
     }
   };
 
@@ -155,7 +163,9 @@ function ExpensesContent() {
           </div>
 
               <div className={styles.formActions} style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" className={styles.primaryButton}>Save Expense</button>
+                <button type="submit" className={styles.primaryButton} disabled={isSaving} aria-busy={isSaving}>
+                  {isSaving ? 'Saving…' : 'Save Expense'}
+                </button>
               </div>
               </form>
             </div>
@@ -216,6 +226,8 @@ function ExpensesContent() {
                       type="button"
                       className={styles.iconButton}
                       aria-label={`Delete expense for ${expense.payeeName}`}
+                      disabled={deletingId === expense.id}
+                      aria-busy={deletingId === expense.id}
                       onClick={() => handleDeleteExpense(expense.id, expense.payeeName)}
                     >
                       <Trash size={16} />

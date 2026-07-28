@@ -13,6 +13,7 @@ import React from 'react'
 import { logout } from '@/app/login/actions'
 import styles from './adminLayout.module.css'
 import { SquaresFour, SignOut, ShieldCheck } from '@phosphor-icons/react'
+import SubmitButton from '@/components/SubmitButton'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -34,10 +35,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className={styles.sidebarFooter}>
           <form action={logout}>
-            <button type="submit" className={styles.logoutButton}>
+            <SubmitButton className={styles.logoutButton} pendingLabel="Signing out…">
               <SignOut size={16} />
               Sign Out
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </aside>

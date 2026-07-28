@@ -14,6 +14,8 @@ function ClientsContent() {
   const [isAdding, setIsAdding] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', address: '' });
   const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -38,15 +40,23 @@ function ClientsContent() {
 
   const handleAddClient = (e: React.FormEvent) => {
     e.preventDefault();
+    // Guards against a second submit landing before the form closes (e.g. a
+    // fast double-click, or a script firing the handler repeatedly) — even
+    // though addClient() itself is synchronous today, this keeps the button
+    // safe to spam and future-proofs it if saving ever needs a network round
+    // trip.
+    if (isSaving) return;
     if (!newClient.name || !newClient.email) {
       setFormError('Company name and email are required.');
       return;
     }
 
+    setIsSaving(true);
     addClient(newClient);
     setNewClient({ name: '', email: '', phone: '', address: '' });
     setFormError('');
     setIsAdding(false);
+    setIsSaving(false);
   };
 
   const handleCancel = () => {
@@ -59,11 +69,14 @@ function ClientsContent() {
   };
 
   const handleDeleteClient = (id: string, name: string, invoiceCount: number) => {
+    if (deletingId) return;
     const warning = invoiceCount > 0
       ? `Delete ${name}? This client has ${invoiceCount} invoice${invoiceCount === 1 ? '' : 's'} on record. The client will be removed, but their invoices will remain.`
       : `Delete ${name}? This cannot be undone.`;
     if (window.confirm(warning)) {
+      setDeletingId(id);
       deleteClient(id);
+      setDeletingId(null);
     }
   };
 
@@ -144,8 +157,10 @@ function ClientsContent() {
                 <p role="alert" style={{ color: 'var(--color-danger)', fontSize: '13px', marginTop: '-4px' }}>{formError}</p>
               )}
               <div className={styles.formActions}>
-                <button type="button" className={styles.cancelButton} onClick={handleCancel}>Cancel</button>
-                <button type="submit" className={styles.submitButton}>Save Client</button>
+                <button type="button" className={styles.cancelButton} onClick={handleCancel} disabled={isSaving}>Cancel</button>
+                <button type="submit" className={styles.submitButton} disabled={isSaving} aria-busy={isSaving}>
+                  {isSaving ? 'Saving…' : 'Save Client'}
+                </button>
               </div>
               </form>
             </div>
@@ -228,6 +243,8 @@ function ClientsContent() {
                         type="button"
                         className={styles.iconButton}
                         aria-label={`Delete ${client.name}`}
+                        disabled={deletingId === client.id}
+                        aria-busy={deletingId === client.id}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteClient(client.id, client.name, clientInvoicesCount);

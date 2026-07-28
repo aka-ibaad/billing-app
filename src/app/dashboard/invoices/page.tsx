@@ -18,6 +18,10 @@ function InvoicesContent() {
   const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
   const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isExportingImage, setIsExportingImage] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const previewScalerRef = useRef<HTMLDivElement>(null);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
@@ -185,6 +189,7 @@ function InvoicesContent() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!newInvoice.clientId) {
       setFormError('Please select a client before saving.');
       return;
@@ -194,9 +199,11 @@ function InvoicesContent() {
       return;
     }
 
+    setIsSaving(true);
     addInvoice(newInvoice);
     setFormError('');
     setIsCreating(false);
+    setIsSaving(false);
     // Reset form
     setNewInvoice({
       clientId: '',
@@ -236,8 +243,11 @@ function InvoicesContent() {
   };
 
   const handleDeleteInvoice = (id: string, number: string) => {
+    if (deletingId) return;
     if (window.confirm(`Delete invoice ${number}? This cannot be undone.`)) {
+      setDeletingId(id);
       deleteInvoice(id);
+      setDeletingId(null);
     }
   };
 
@@ -277,26 +287,43 @@ function InvoicesContent() {
     }
   };
 
+  // html2canvas + jsPDF are genuinely expensive (rasterizing the DOM at 2x
+  // scale) and run entirely client-side, so a spammed click doesn't hit a
+  // rate limit anywhere — it just stacks up concurrent renders and can
+  // produce multiple overlapping downloads. Guarded the same way as the
+  // network-backed actions elsewhere in the app.
   const exportPDF = async () => {
-    const canvas = await captureInvoicePreview();
-    if (!canvas) return;
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: newInvoice.format === 'horizontal' ? 'portrait' : 'portrait',
-      unit: 'px',
-      format: [canvas.width / 2, canvas.height / 2]
-    });
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
-    pdf.save(`${newInvoice.number}.pdf`);
+    if (isExportingPDF) return;
+    setIsExportingPDF(true);
+    try {
+      const canvas = await captureInvoicePreview();
+      if (!canvas) return;
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: newInvoice.format === 'horizontal' ? 'portrait' : 'portrait',
+        unit: 'px',
+        format: [canvas.width / 2, canvas.height / 2]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`${newInvoice.number}.pdf`);
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   const exportImage = async () => {
-    const canvas = await captureInvoicePreview();
-    if (!canvas) return;
-    const link = document.createElement('a');
-    link.download = `${newInvoice.number}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    if (isExportingImage) return;
+    setIsExportingImage(true);
+    try {
+      const canvas = await captureInvoicePreview();
+      if (!canvas) return;
+      const link = document.createElement('a');
+      link.download = `${newInvoice.number}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      setIsExportingImage(false);
+    }
   };
 
   return (
@@ -567,8 +594,10 @@ function InvoicesContent() {
                     <p role="alert" style={{ color: 'var(--color-danger)', fontSize: '13px', marginBottom: '12px' }}>{formError}</p>
                   )}
                   <div className={styles.formActions}>
-                    <button type="button" className={styles.cancelButton} onClick={handleCancelBuilder}>Cancel</button>
-                    <button type="submit" className={styles.submitButton}>Save Draft</button>
+                    <button type="button" className={styles.cancelButton} onClick={handleCancelBuilder} disabled={isSaving}>Cancel</button>
+                    <button type="submit" className={styles.submitButton} disabled={isSaving} aria-busy={isSaving}>
+                      {isSaving ? 'Saving…' : 'Save Draft'}
+                    </button>
                   </div>
                 </div>
                 </form>
@@ -590,11 +619,23 @@ function InvoicesContent() {
                     >Receipt</button>
                   </div>
                   <div className={styles.panelBtnGroup}>
-                    <button type="button" onClick={exportImage} className={styles.exportBtn}>
-                      <ImageIcon /> Image
+                    <button
+                      type="button"
+                      onClick={exportImage}
+                      className={styles.exportBtn}
+                      disabled={isExportingImage || isExportingPDF}
+                      aria-busy={isExportingImage}
+                    >
+                      <ImageIcon /> {isExportingImage ? 'Exporting…' : 'Image'}
                     </button>
-                    <button type="button" onClick={exportPDF} className={`${styles.exportBtn} ${styles.exportBtnPrimary}`}>
-                      <DownloadSimple /> PDF
+                    <button
+                      type="button"
+                      onClick={exportPDF}
+                      className={`${styles.exportBtn} ${styles.exportBtnPrimary}`}
+                      disabled={isExportingPDF || isExportingImage}
+                      aria-busy={isExportingPDF}
+                    >
+                      <DownloadSimple /> {isExportingPDF ? 'Exporting…' : 'PDF'}
                     </button>
                   </div>
                 </div>
@@ -731,6 +772,8 @@ function InvoicesContent() {
                       type="button"
                       className={styles.iconButton}
                       aria-label={`Delete invoice ${inv.number}`}
+                      disabled={deletingId === inv.id}
+                      aria-busy={deletingId === inv.id}
                       onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(inv.id, inv.number); }}
                     >
                       <Trash size={16} />

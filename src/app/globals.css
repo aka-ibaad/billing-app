@@ -357,11 +357,22 @@ a {
 
 button {
   font-family: inherit;
-  transition: transform 0.2s var(--ease-spring), background-color 0.2s var(--ease-custom);
+  transition: transform 0.2s var(--ease-spring), background-color 0.2s var(--ease-custom), opacity 0.2s var(--ease-custom);
 }
 
 button:active {
   transform: scale(0.97);
+}
+
+/* Applied whenever a button is mid-submit (aria-busy) or otherwise disabled
+   — a single global rule so every action button across the app (save,
+   delete, export, upload, ...) gets the same "this is working, don't click
+   again" treatment without each page's CSS module having to redeclare it. */
+button:disabled,
+button[aria-busy='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 /* Theme Switch Transition */

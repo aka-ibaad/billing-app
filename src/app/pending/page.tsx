@@ -1,5 +1,6 @@
 import { logout } from '@/app/login/actions'
 import styles from '@/app/login/login.module.css'
+import SubmitButton from '@/components/SubmitButton'
 
 import { createClient } from '@/utils/supabase/server'
 
@@ -36,9 +37,9 @@ export default async function PendingPage() {
           </div>
 
           <form action={logout}>
-            <button type="submit" className={`${styles.button} ${styles.secondaryButton}`}>
+            <SubmitButton className={`${styles.button} ${styles.secondaryButton}`} pendingLabel="Signing out…">
               Sign Out
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </div>

@@ -12,6 +12,8 @@ function ProductsContent() {
   const { products, addProduct, deleteProduct, invoices } = useAppData();
   const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
@@ -29,10 +31,13 @@ function ProductsContent() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!newProduct.name) return;
+    setIsSaving(true);
     addProduct(newProduct);
     setNewProduct({ name: '', description: '', defaultRate: 0 });
     setIsCreating(false);
+    setIsSaving(false);
   };
 
   const handleToggleCreate = () => {
@@ -44,8 +49,11 @@ function ProductsContent() {
   };
 
   const handleDeleteProduct = (id: string, name: string) => {
+    if (deletingId) return;
     if (window.confirm(`Delete "${name}"? This cannot be undone.`)) {
+      setDeletingId(id);
       deleteProduct(id);
+      setDeletingId(null);
     }
   };
 
@@ -112,7 +120,9 @@ function ProductsContent() {
             />
           </div>
               <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" className={styles.primaryButton}>Save Product</button>
+                <button type="submit" className={styles.primaryButton} disabled={isSaving} aria-busy={isSaving}>
+                  {isSaving ? 'Saving…' : 'Save Product'}
+                </button>
               </div>
               </form>
             </div>
@@ -166,6 +176,8 @@ function ProductsContent() {
                       type="button"
                       className={styles.iconButton}
                       aria-label={`Delete ${product.name}`}
+                      disabled={deletingId === product.id}
+                      aria-busy={deletingId === product.id}
                       onClick={() => handleDeleteProduct(product.id, product.name)}
                     >
                       <Trash size={16} />
