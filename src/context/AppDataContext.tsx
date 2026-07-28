@@ -227,29 +227,17 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (!hasRemoteData) {
-          const { storedClients, storedInvoices } = loadFromStorage();
-
-          // Fallback mock data if empty
-          if (!storedClients && !storedInvoices) {
-            const now = new Date();
-            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
-            const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-
-            setClients([
-              { id: '1', name: 'Globex Inc', email: 'billing@globex.com', address: '100 Globe Way', createdAt: new Date().toISOString() },
-              { id: '2', name: 'Soylent Corp', email: 'accounts@soylent.com', address: '200 Soy St', createdAt: new Date().toISOString() }
-            ]);
-            setInvoices([
-              {
-                id: '1', clientId: '1', number: 'INV-2026-040', issueDate: tenDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
-                items: [{ id: 'i1', description: 'Web Design', quantity: 1, rate: 1200 }], status: 'Paid', notes: ''
-              },
-              {
-                id: '2', clientId: '2', number: 'INV-2026-039', issueDate: twoDaysAgo.toISOString().split('T')[0], dueDate: now.toISOString().split('T')[0],
-                items: [{ id: 'i2', description: 'Consulting', quantity: 40, rate: 210 }], status: 'Overdue', notes: ''
-              }
-            ]);
-          }
+          // A brand-new account with nothing synced and nothing in
+          // localStorage yet used to get seeded with fake demo clients
+          // (Globex Inc, Soylent Corp) so the dashboard didn't look bare.
+          // That meant real merchants' first login showed fabricated
+          // companies mixed in with whatever they added themselves. Genuine
+          // "no data yet" now just stays empty — each page's empty state
+          // (e.g. "Create Your First Invoice") is what should teach the
+          // interface, not planted sample data. `seedMockData()` on the
+          // context is still available for anyone who explicitly wants to
+          // try the app with sample data.
+          loadFromStorage();
         }
       } catch (error) {
         console.error('Failed to initialize data from Supabase:', error);
@@ -264,7 +252,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // Smart Notifications logic
   useEffect(() => {
     if (!isLoaded) return;
-    
+
     // Generate smart notifications for today
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -272,62 +260,67 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-    const generatedNotifications: AppNotification[] = [];
+    // The dedup check ("has this invoice already been notified about?") and
+    // the generation both happen inside the setNotifications updater so they
+    // read the *current* notifications state via `prev`, not the value
+    // captured in this effect's closure. This effect only re-runs when
+    // `invoices`/`isLoaded` change — reading the outer `notifications`
+    // variable here would go stale the moment a user marked one read or
+    // cleared the list without also touching an invoice, letting duplicates
+    // slip back in or blocking a real dedup.
+    setNotifications(prev => {
+      const generatedNotifications: AppNotification[] = [];
 
-    invoices.forEach(inv => {
-      if (!inv.expectedReadyDate) return;
-      if (inv.orderStatus === 'Delivered' || inv.orderStatus === 'Cancelled') return;
+      invoices.forEach(inv => {
+        if (!inv.expectedReadyDate) return;
+        if (inv.orderStatus === 'Delivered' || inv.orderStatus === 'Cancelled') return;
 
-      const readyDate = inv.expectedReadyDate;
-      const idPrefix = `smart-${inv.id}`;
+        const readyDate = inv.expectedReadyDate;
+        const idPrefix = `smart-${inv.id}`;
 
-      // Check if already notified to avoid spamming the state if we wanted to be persistent,
-      // but since we want them to show up, we will just add them if they don't already exist.
-      // Wait, if they marked it read, we don't want to recreate it as unread.
-      
-      const exists = notifications.some(n => n.id.startsWith(idPrefix) && n.title.includes(inv.number));
-      if (exists) return;
+        const exists = prev.some(n => n.id.startsWith(idPrefix) && n.title.includes(inv.number));
+        if (exists) return;
 
-      if (readyDate === todayStr) {
-        generatedNotifications.push({
-          id: `${idPrefix}-today-${Date.now()}`,
-          title: 'Order Due Today',
-          message: `Order ${inv.number} is due today at ${inv.expectedReadyTime || 'any time'}.`,
-          type: 'warning',
-          isRead: false,
-          date: now.toISOString(),
-          link: `/invoices/${inv.id}`
-        });
-      } else if (readyDate === tomorrowStr) {
-        generatedNotifications.push({
-          id: `${idPrefix}-tmrw-${Date.now()}`,
-          title: 'Order Due Tomorrow',
-          message: `Reminder: Order ${inv.number} is due tomorrow.`,
-          type: 'info',
-          isRead: false,
-          date: now.toISOString(),
-          link: `/invoices/${inv.id}`
-        });
-      } else if (readyDate < todayStr) {
-        generatedNotifications.push({
-          id: `${idPrefix}-overdue-${Date.now()}`,
-          title: 'Order Overdue',
-          message: `Order ${inv.number} was due on ${readyDate} and is not delivered yet.`,
-          type: 'error',
-          isRead: false,
-          date: now.toISOString(),
-          link: `/invoices/${inv.id}`
-        });
-      }
-    });
-
-    if (generatedNotifications.length > 0) {
-      setNotifications(prev => {
-        // filter out exact duplicates just in case
-        const newNots = generatedNotifications.filter(gn => !prev.some(p => p.id === gn.id));
-        return [...newNots, ...prev];
+        // There's no per-invoice detail route (only the /dashboard/invoices
+        // list), so these link to the list rather than a dead /invoices/:id
+        // page. If a real detail route is added later, swap this back to
+        // `/dashboard/invoices/${inv.id}`.
+        if (readyDate === todayStr) {
+          generatedNotifications.push({
+            id: `${idPrefix}-today-${Date.now()}`,
+            title: 'Order Due Today',
+            message: `Order ${inv.number} is due today at ${inv.expectedReadyTime || 'any time'}.`,
+            type: 'warning',
+            isRead: false,
+            date: now.toISOString(),
+            link: '/dashboard/invoices'
+          });
+        } else if (readyDate === tomorrowStr) {
+          generatedNotifications.push({
+            id: `${idPrefix}-tmrw-${Date.now()}`,
+            title: 'Order Due Tomorrow',
+            message: `Reminder: Order ${inv.number} is due tomorrow.`,
+            type: 'info',
+            isRead: false,
+            date: now.toISOString(),
+            link: '/dashboard/invoices'
+          });
+        } else if (readyDate < todayStr) {
+          generatedNotifications.push({
+            id: `${idPrefix}-overdue-${Date.now()}`,
+            title: 'Order Overdue',
+            message: `Order ${inv.number} was due on ${readyDate} and is not delivered yet.`,
+            type: 'error',
+            isRead: false,
+            date: now.toISOString(),
+            link: '/dashboard/invoices'
+          });
+        }
       });
-    }
+
+      if (generatedNotifications.length === 0) return prev;
+      return [...generatedNotifications, ...prev];
+    });
   }, [invoices, isLoaded]); // Re-run when invoices change to capture newly due ones
 
   // Save to localStorage when state changes
@@ -495,9 +488,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
     // Notifications
     const mockNotifications: AppNotification[] = [
-      { id: 'n1', title: 'Payment Received', message: 'Globex Inc paid INV-2026-040 (Rs 1,500)', type: 'success', isRead: false, date: new Date(now.getTime() - 1000 * 60 * 5).toISOString(), link: '/invoices' },
-      { id: 'n2', title: 'Invoice Overdue', message: 'INV-2026-041 for Soylent Corp is 5 days overdue.', type: 'warning', isRead: false, date: new Date(now.getTime() - 1000 * 60 * 60 * 2).toISOString(), link: '/invoices' },
-      { id: 'n3', title: 'New Client', message: 'Umbrella Corp was added to the system.', type: 'info', isRead: true, date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10).toISOString(), link: '/clients' }
+      { id: 'n1', title: 'Payment Received', message: 'Globex Inc paid INV-2026-040 (Rs 1,500)', type: 'success', isRead: false, date: new Date(now.getTime() - 1000 * 60 * 5).toISOString(), link: '/dashboard/invoices' },
+      { id: 'n2', title: 'Invoice Overdue', message: 'INV-2026-041 for Soylent Corp is 5 days overdue.', type: 'warning', isRead: false, date: new Date(now.getTime() - 1000 * 60 * 60 * 2).toISOString(), link: '/dashboard/invoices' },
+      { id: 'n3', title: 'New Client', message: 'Umbrella Corp was added to the system.', type: 'info', isRead: true, date: new Date(now.getTime() - 1000 * 60 * 60 * 24 * 10).toISOString(), link: '/dashboard/clients' }
     ];
 
     setClients(mockClients);

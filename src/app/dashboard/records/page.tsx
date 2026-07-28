@@ -133,7 +133,7 @@ export default function RecordsPage() {
                       <Receipt size={48} weight="duotone" />
                     </div>
                     <p className={styles.emptyStateText}>No financial records found for this period.</p>
-                    <Link href="/invoices?create=true" className={styles.emptyStateButton}>
+                    <Link href="/dashboard/invoices?create=true" className={styles.emptyStateButton}>
                       <Plus size={16} />
                       Create Your First Invoice
                     </Link>

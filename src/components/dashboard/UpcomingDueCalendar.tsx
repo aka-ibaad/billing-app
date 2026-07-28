@@ -54,7 +54,7 @@ export default function UpcomingDueCalendar() {
           <CalendarBlank size={18} weight="duotone" />
         </div>
         <div className={styles.title}>Upcoming Due</div>
-        <Link href="/invoices" className={styles.viewAll}>
+        <Link href="/dashboard/invoices" className={styles.viewAll}>
           View all
         </Link>
       </div>

@@ -344,27 +344,27 @@ export default function Dashboard() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }}>
         <h2 className={styles.sectionTitle}>Quick Actions</h2>
         <div className={styles.actionsGrid}>
-          <Link href="/invoices?create=true" className={styles.actionCard}>
+          <Link href="/dashboard/invoices?create=true" className={styles.actionCard}>
             <FileText size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-blue)" />
             <span className={styles.actionLabel}>New Invoice</span>
           </Link>
-          <Link href="/clients?create=true" className={styles.actionCard}>
+          <Link href="/dashboard/clients?create=true" className={styles.actionCard}>
             <Users size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-emerald)" />
             <span className={styles.actionLabel}>Add Client</span>
           </Link>
-          <Link href="/products?create=true" className={styles.actionCard}>
+          <Link href="/dashboard/products?create=true" className={styles.actionCard}>
             <ChartLineUp size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-purple)" />
             <span className={styles.actionLabel}>Add Product</span>
           </Link>
-          <Link href="/expenses?create=true" className={styles.actionCard}>
+          <Link href="/dashboard/expenses?create=true" className={styles.actionCard}>
             <Receipt size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-expense)" />
             <span className={styles.actionLabel}>Record Expense</span>
           </Link>
-          <Link href="/invoices?create=true&format=vertical" className={styles.actionCard}>
+          <Link href="/dashboard/invoices?create=true&format=vertical" className={styles.actionCard}>
             <FileText size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-blue)" />
             <span className={styles.actionLabel}>Create Receipt</span>
           </Link>
-          <Link href="/records" className={styles.actionCard}>
+          <Link href="/dashboard/records" className={styles.actionCard}>
             <Wallet size={24} weight="duotone" className={styles.actionIcon} color="var(--color-chart-amber)" />
             <span className={styles.actionLabel}>View Reports</span>
           </Link>
@@ -403,7 +403,7 @@ export default function Dashboard() {
         <motion.div className={styles.chartCard} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.9 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 className={styles.sectionTitle}>Recent Invoices</h2>
-            <Link href="/invoices" style={{ color: 'var(--color-accent)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+            <Link href="/dashboard/invoices" style={{ color: 'var(--color-accent)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
               View All <ArrowRight size={14} />
             </Link>
           </div>

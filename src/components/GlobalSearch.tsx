@@ -86,7 +86,7 @@ export default function GlobalSearch() {
                         onClick={() => {
                           setIsOpen(false);
                           setQuery('');
-                          router.push('/invoices');
+                          router.push('/dashboard/invoices');
                         }}
                       >
                         <FileText size={16} />
@@ -110,7 +110,7 @@ export default function GlobalSearch() {
                       onClick={() => {
                         setIsOpen(false);
                         setQuery('');
-                        router.push('/clients');
+                        router.push('/dashboard/clients');
                       }}
                     >
                       <Users size={16} />
@@ -133,7 +133,7 @@ export default function GlobalSearch() {
                       onClick={() => {
                         setIsOpen(false);
                         setQuery('');
-                        router.push('/settings');
+                        router.push('/dashboard/settings');
                       }}
                     >
                       <Gear size={16} />

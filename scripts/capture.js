@@ -7,21 +7,21 @@ const BASE_URL = `http://localhost:${PORT}`;
 const OUTPUT_DIR = path.join(__dirname, '../app-showcase');
 
 const ROUTES = [
-  { path: '/', name: 'dashboard' },
-  { path: '/invoices', name: 'invoices' },
-  { path: '/invoices/new', name: 'invoice-create' },
-  { path: '/records', name: 'records' },
-  { path: '/settings', name: 'settings' },
-  { path: '/clients', name: 'clients' },
-  { path: '/expenses', name: 'expenses' },
-  { path: '/products', name: 'products' },
-  // Additional routes requested
-  { path: '/receipts', name: 'receipts' },
-  { path: '/receipts/new', name: 'receipt-create' },
-  { path: '/estimates', name: 'estimates' },
-  { path: '/purchase-orders', name: 'purchase-orders' },
-  { path: '/reports', name: 'reports' },
-  { path: '/company', name: 'company' },
+  { path: '/dashboard', name: 'dashboard' },
+  { path: '/dashboard/invoices', name: 'invoices' },
+  { path: '/dashboard/invoices?create=true', name: 'invoice-create' },
+  { path: '/dashboard/records', name: 'records' },
+  { path: '/dashboard/settings', name: 'settings' },
+  { path: '/dashboard/clients', name: 'clients' },
+  { path: '/dashboard/expenses', name: 'expenses' },
+  { path: '/dashboard/products', name: 'products' },
+  { path: '/dashboard/invoices?create=true&format=vertical', name: 'receipt-create' },
+  // NOTE: the app-showcase folder has screenshots for receipts, estimates,
+  // purchase-orders, reports, and company (e.g. app-showcase/*/desktop/reports.png),
+  // but there is no corresponding page under src/app/dashboard for any of
+  // them yet — those routes were removed from here rather than "fixed"
+  // with a /dashboard prefix, since prefixing a page that doesn't exist
+  // still 404s. Add them back once those pages actually exist.
 ];
 
 const VIEWPORTS = [

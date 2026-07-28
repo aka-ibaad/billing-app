@@ -23,9 +23,26 @@
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-12);
+}
+
+.statCardIconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
+  margin-bottom: var(--space-3);
+}
+
+.statCardIconWrap.warn {
+  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  color: var(--color-warning);
 }
 
 .statCard {
@@ -72,12 +89,28 @@
 .statTrend {
   margin-top: var(--space-2);
   font-size: var(--text-xs);
-  color: var(--color-chart-emerald);
+  color: var(--color-text-secondary);
   font-weight: 500;
+}
+
+.statTrend.positive {
+  color: var(--color-success);
+}
+
+.statTrend.attention {
+  color: var(--color-warning);
 }
 
 .section {
   margin-bottom: var(--space-8);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
 }
 
 .sectionTitle {
@@ -85,6 +118,11 @@
   font-weight: 500;
   color: var(--color-text-primary);
   margin-bottom: var(--space-4);
+}
+
+.sectionDesc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .tableContainer {
@@ -123,37 +161,62 @@
   border-bottom: none;
 }
 
-.badgeActive {
+/* Status badges share one base so every state reads at the same weight;
+   only the semantic color (from the theme's success/warning/danger/accent
+   tokens, not hardcoded rgb triples) changes between them. Using
+   color-mix() against the token itself — rather than a hand-picked rgba()
+   — keeps the tint correct in both light and dark theme automatically. */
+.badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
+  gap: 4px;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 500;
-  background-color: rgba(16, 185, 129, 0.1);
-  color: var(--color-chart-emerald);
+  white-space: nowrap;
+}
+
+.badgeActive {
+  composes: badge;
+  background-color: color-mix(in srgb, var(--color-success) 14%, transparent);
+  color: var(--color-success);
+}
+
+.badgeAdmin {
+  composes: badge;
+  background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+}
+
+.badgePending {
+  composes: badge;
+  background-color: color-mix(in srgb, var(--color-warning) 16%, transparent);
+  color: var(--color-warning);
 }
 
 .badgeSuspended {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
+  composes: badge;
+  background-color: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  color: var(--color-danger);
+}
+
+.actionBtn,
+.actionBtnDanger,
+.actionBtnPrimary {
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: var(--text-xs);
   font-weight: 500;
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--color-chart-expense);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-custom);
+  white-space: nowrap;
 }
 
 .actionBtn {
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 12px;
-  font-size: var(--text-xs);
   color: var(--color-text-primary);
-  cursor: pointer;
-  transition: all 0.2s var(--ease-custom);
 }
 
 .actionBtn:hover {
@@ -161,33 +224,167 @@
 }
 
 .actionBtnDanger {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: var(--radius-sm);
-  padding: 4px 12px;
-  font-size: var(--text-xs);
-  color: var(--color-chart-expense);
-  cursor: pointer;
-  transition: all 0.2s var(--ease-custom);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 24%, transparent);
+  color: var(--color-danger);
 }
 
 .actionBtnDanger:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: color-mix(in srgb, var(--color-danger) 20%, transparent);
 }
 
 .actionBtnPrimary {
   background: var(--color-text-primary);
   border: none;
-  border-radius: var(--radius-sm);
   padding: 8px 16px;
   font-size: var(--text-sm);
   color: var(--color-bg-primary);
-  cursor: pointer;
-  transition: all 0.2s var(--ease-custom);
 }
 
 .actionBtnPrimary:hover {
   opacity: 0.9;
+}
+
+.actionBtn:disabled,
+.actionBtnDanger:disabled,
+.actionBtnPrimary:disabled,
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actionBtn:focus-visible,
+.actionBtnDanger:focus-visible,
+.actionBtnPrimary:focus-visible,
+.secondaryButton:focus-visible,
+.input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.actionsCell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.passwordForm {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.passwordInput {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  width: 96px;
+  font-size: 12px;
+}
+
+.passwordInput:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.secondaryButton {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-custom);
+}
+
+.secondaryButton:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.companyName {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.companyOwner {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.syncSummary {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.syncTimestamp {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+.noSyncLabel {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.emptyStateIcon {
+  color: var(--color-text-muted);
+}
+
+.emptyStateTitle {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.emptyStateHint {
+  font-size: var(--text-sm);
+  max-width: 40ch;
+}
+
+/* Responsive: stack the header and let the table keep its horizontal
+   scroll (dense admin tables are fine on mobile — the alternative,
+   reflowing every column into a stacked card, hides too much at once
+   for a moderation task) rather than trying to force columns to wrap. */
+@media (max-width: 640px) {
+  .container {
+    padding: var(--space-6) var(--space-3);
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .passwordForm {
+    flex-wrap: wrap;
+  }
+
+  .passwordInput {
+    width: 100%;
+  }
 }
 
 .formContainer {

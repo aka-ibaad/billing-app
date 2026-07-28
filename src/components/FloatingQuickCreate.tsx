@@ -26,11 +26,11 @@ export default function FloatingQuickCreate() {
   }, [isOpen]);
 
   const actions = [
-    { id: 'invoice', label: 'Invoice', icon: FileText, onClick: () => router.push('/invoices?create=true') },
-    { id: 'receipt', label: 'Receipt', icon: Receipt, onClick: () => router.push('/invoices?create=true') },
-    { id: 'client', label: 'Client', icon: Users, onClick: () => router.push('/clients?create=true') },
-    { id: 'product', label: 'Product', icon: ChartLineUp, onClick: () => router.push('/products?create=true') },
-    { id: 'expense', label: 'Expense', icon: FilePlus, onClick: () => router.push('/expenses?create=true') },
+    { id: 'invoice', label: 'Invoice', icon: FileText, onClick: () => router.push('/dashboard/invoices?create=true') },
+    { id: 'receipt', label: 'Receipt', icon: Receipt, onClick: () => router.push('/dashboard/invoices?create=true&format=vertical') },
+    { id: 'client', label: 'Client', icon: Users, onClick: () => router.push('/dashboard/clients?create=true') },
+    { id: 'product', label: 'Product', icon: ChartLineUp, onClick: () => router.push('/dashboard/products?create=true') },
+    { id: 'expense', label: 'Expense', icon: FilePlus, onClick: () => router.push('/dashboard/expenses?create=true') },
   ];
 
   return (

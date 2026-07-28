@@ -32,10 +32,15 @@ async function setAdminRole() {
   }
 
   console.log(`Found user ${adminUser.id}. Setting role to 'admin'...`);
-  
+
+  // Spread the user's existing app_metadata first — updateUserById replaces
+  // app_metadata wholesale, so passing only { role: 'admin' } would silently
+  // wipe any other field already set there (e.g. `status`), unlike the
+  // approve/suspend/reject actions in src/app/admin/dashboard/actions.ts,
+  // which all merge the same way this now does.
   const { data, error } = await supabase.auth.admin.updateUserById(
     adminUser.id,
-    { app_metadata: { role: 'admin' } }
+    { app_metadata: { ...adminUser.app_metadata, role: 'admin' } }
   );
 
   if (error) {

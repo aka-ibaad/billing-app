@@ -86,6 +86,9 @@ export async function changeUserPassword(formData: FormData) {
   if (!userId || !password) {
     throw new Error('User ID and password are required')
   }
+  if (password.length < 8) {
+    throw new Error('Password must be at least 8 characters')
+  }
 
   const adminAuthClient = createAdminClient().auth.admin
   const { error } = await adminAuthClient.updateUserById(userId, {
