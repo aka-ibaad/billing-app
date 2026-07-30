@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Plus, FileText, Receipt, Users, ChartLineUp, FilePlus } from '@phosphor-icons/react';
+import { Plus, FileText, Receipt, Users, ChartLineUp, FilePlus, NotePencil } from '@phosphor-icons/react';
+import { useAppData } from '@/context/AppDataContext';
 import styles from './FloatingQuickCreate.module.css';
 
 export default function FloatingQuickCreate() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { isReadOnly } = useAppData();
 
   // Handle Ctrl+N shortcut to open FAB menu
   useEffect(() => {
@@ -27,11 +29,17 @@ export default function FloatingQuickCreate() {
 
   const actions = [
     { id: 'invoice', label: 'Invoice', icon: FileText, onClick: () => router.push('/dashboard/invoices?create=true') },
+    { id: 'quotation', label: 'Quotation', icon: NotePencil, onClick: () => router.push('/dashboard/invoices?create=true&documentType=quotation') },
     { id: 'receipt', label: 'Receipt', icon: Receipt, onClick: () => router.push('/dashboard/invoices?create=true&format=vertical') },
     { id: 'client', label: 'Client', icon: Users, onClick: () => router.push('/dashboard/clients?create=true') },
     { id: 'product', label: 'Product', icon: ChartLineUp, onClick: () => router.push('/dashboard/products?create=true') },
     { id: 'expense', label: 'Expense', icon: FilePlus, onClick: () => router.push('/dashboard/expenses?create=true') },
   ];
+
+  // Every action here creates a record — nothing to offer in read-only
+  // (mobile) mode, so the whole floating button disappears rather than
+  // opening a menu of dead ends.
+  if (isReadOnly) return null;
 
   return (
     <div className={styles.fabContainer}>

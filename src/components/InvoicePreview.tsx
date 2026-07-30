@@ -1,4 +1,5 @@
 import React from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Invoice, Client, Settings } from '@/context/AppDataContext';
 import styles from './InvoicePreview.module.css';
 
@@ -14,9 +15,28 @@ interface InvoicePreviewProps {
     total: number;
   };
   subtotal?: number; // legacy fallback
+  // Bypasses the mobile placeholder below. Set by hidden, off-screen
+  // capture targets (used for PDF/image export and Share) that need the
+  // real rendered document on every platform — only the on-screen,
+  // interactively-scaled preview panel should ever show the placeholder.
+  forceRender?: boolean;
 }
 
-export default function InvoicePreview({ invoice, client, settings, totals, subtotal }: InvoicePreviewProps) {
+export default function InvoicePreview({ invoice, client, settings, totals, subtotal, forceRender = false }: InvoicePreviewProps) {
+  // The live, on-screen document preview is a web-app-only feature by
+  // design (rendering a full print-proportioned A4/receipt layout doesn't
+  // work well on a phone screen). This does NOT apply to forceRender
+  // callers — PDF export, image export, and Share all need the actual
+  // document rendered on every platform (including mobile) to capture a
+  // correct image; only what the user visually sees inline is web-only.
+  if (Capacitor.isNativePlatform() && !forceRender) {
+    return (
+      <div className={styles.mobileUnavailable}>
+        <p>The document preview is available on the web app.</p>
+      </div>
+    );
+  }
+
   const number = invoice.number || 'INV-000';
   const issueDate = invoice.issueDate || 'YYYY-MM-DD';
   const dueDate = invoice.dueDate || 'YYYY-MM-DD';
@@ -143,7 +163,7 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
         </header>
 
         <section className={styles.clientSection}>
-          <h3 className={styles.sectionTitle}>BILL TO</h3>
+          <h3 className={styles.sectionTitle}>{documentType === 'quotation' ? 'PREPARED FOR' : 'BILL TO'}</h3>
           {client ? (
             <div className={styles.clientInfo}>
               <p className={styles.clientName}>{client.name}</p>
@@ -220,20 +240,24 @@ export default function InvoicePreview({ invoice, client, settings, totals, subt
             ))}
             
             <div className={styles.grandTotal}>
-              <span>Total Due</span>
+              {/* A quotation is a proposed price, not money owed yet — "Total
+                  Due" and the advance/remaining-balance breakdown below are
+                  invoice-only concepts that don't apply until it's accepted
+                  and turned into an actual invoice. */}
+              <span>{documentType === 'quotation' ? 'Estimated Total' : 'Total Due'}</span>
               <span className="mono-text">
                 Rs {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </span>
             </div>
 
-            {paymentStatus === 'advance_full' && (
+            {documentType === 'invoice' && paymentStatus === 'advance_full' && (
               <div className={styles.totalRow} style={{ color: 'var(--color-success)', marginTop: '8px' }}>
                 <span>Paid (Full Advance)</span>
                 <span className="mono-text">- Rs {tFinal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             )}
             
-            {paymentStatus === 'advance_partial' && (
+            {documentType === 'invoice' && paymentStatus === 'advance_partial' && (
               <>
                 <div className={styles.totalRow} style={{ color: 'var(--color-success)', marginTop: '8px' }}>
                   <span>Advance Paid</span>

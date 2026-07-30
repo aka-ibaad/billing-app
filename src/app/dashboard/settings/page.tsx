@@ -7,11 +7,12 @@ import styles from './page.module.css';
 import { Sun, Moon, Monitor } from '@phosphor-icons/react';
 import { logout } from '@/app/login/actions';
 import SubmitButton from '@/components/SubmitButton';
+import ReadOnlyBanner from '@/components/ReadOnlyBanner';
 
 type UploadField = 'logoUrl' | 'avatarUrl' | 'signatureUrl' | 'letterheadUrl';
 
 export default function SettingsPage() {
-  const { settings, updateSettings, seedMockData } = useAppData();
+  const { settings, updateSettings, seedMockData, isReadOnly } = useAppData();
   const { theme, setTheme } = useTheme();
   
   const [formData, setFormData] = useState({
@@ -70,14 +71,20 @@ export default function SettingsPage() {
     });
   }, [settings]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
     setIsSaving(true);
-    updateSettings(formData);
-    setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await updateSettings(formData);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('Could not save settings. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,6 +159,8 @@ export default function SettingsPage() {
         <h1 className={styles.title}>Settings</h1>
       </header>
 
+      {isReadOnly && <ReadOnlyBanner label="settings" />}
+
       {/* <form> now wraps the whole bento grid (.content) plus the submit
           button below it, instead of starting partway through the grid.
           That lets the submit button live as a normal block sibling AFTER
@@ -162,6 +171,11 @@ export default function SettingsPage() {
           not below both). Being a plain sibling avoids relying on that
           entirely. */}
       <form onSubmit={handleSubmit} className={styles.form}>
+      {/* A native <fieldset disabled> cascades disabled state to every
+          descendant input/select/textarea/button in one shot — the
+          simplest way to make the whole settings form read-only on mobile
+          without threading isReadOnly through every individual field. */}
+      <fieldset disabled={isReadOnly} style={{ border: 0, padding: 0, margin: 0 }}>
       <div className={styles.content}>
 
         {/* Appearance Section */}
@@ -604,13 +618,19 @@ export default function SettingsPage() {
                 className={styles.secondaryButton}
                 disabled={isSeeding}
                 aria-busy={isSeeding}
-                onClick={() => {
+                onClick={async () => {
                   if (isSeeding) return;
-                  if (window.confirm('This will replace current data with mock data. Continue?')) {
+                  if (window.confirm('This will add mock data alongside anything already here. Continue?')) {
                     setIsSeeding(true);
-                    seedMockData();
-                    setIsSeeding(false);
-                    alert('Demo data seeded successfully! Go to the Dashboard to see it.');
+                    try {
+                      await seedMockData();
+                      alert('Demo data seeded successfully! Go to the Dashboard to see it.');
+                    } catch (error) {
+                      console.error('Failed to seed demo data:', error);
+                      alert('Could not seed demo data. Please try again.');
+                    } finally {
+                      setIsSeeding(false);
+                    }
                   }
                 }}
               >
@@ -627,6 +647,7 @@ export default function SettingsPage() {
           {isSaving ? 'Saving…' : saved ? 'Saved Successfully' : 'Save All Settings'}
         </button>
       </div>
+      </fieldset>
       </form>
 
       <div style={{ marginTop: '32px', padding: '24px', background: 'var(--color-bg-secondary)', borderRadius: '16px', border: '1px solid var(--color-border)' }}>

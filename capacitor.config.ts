@@ -9,11 +9,21 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // build). Pointing at the deployed URL keeps the web app and the native
 // wrapper on the same codebase with zero build-mode tradeoffs.
 //
-// All actual app data lives in the browser's localStorage (see
-// AppDataContext.tsx), so the app is still fully usable offline once the
-// page has loaded once — same as the installable PWA — this config just
-// changes how the shell that loads the page is delivered (native app vs.
-// "Add to Home Screen").
+// Mobile requires an internet connection — there is no local storage,
+// offline queue, or offline mode anywhere in this app (a separate
+// offline-first Electron desktop app was considered and explicitly
+// shelved — the app stays live-Supabase-only, web + this Capacitor mobile
+// shell, no local database option).
+//
+// Mobile was briefly made view-only (create/edit/delete disabled), then
+// that was reversed — mobile now has full read/write, same as web. The
+// on/off switch for that feature is still in AppDataContext.tsx
+// (`MOBILE_READ_ONLY_ENABLED`, currently false) if it's ever wanted again.
+//
+// One narrower restriction is still in place: the live/styled invoice
+// document preview is web-only (a plain fallback message shows on mobile
+// instead) — see InvoicePreview.tsx. That was a separate decision from the
+// read/write question and wasn't reversed.
 //
 // TODO before shipping to a store: replace `server.url` below with your
 // real production URL (e.g. https://billing.yourdomain.com). Until then,

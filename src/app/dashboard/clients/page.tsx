@@ -4,14 +4,24 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppData, Client } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash, Users, X, EnvelopeSimple, Phone, MapPin, CalendarBlank } from '@phosphor-icons/react';
+import { Trash, Users, X, EnvelopeSimple, Phone, MapPin, CalendarBlank, UploadSimple } from '@phosphor-icons/react';
 import { TopClientsChart } from '@/components/dashboard/DetailedCharts';
+import ReadOnlyBanner from '@/components/ReadOnlyBanner';
+import CsvImportModal from '@/components/CsvImportModal';
 import styles from './page.module.css';
 
+const CLIENT_IMPORT_FIELDS = [
+  { key: 'name', label: 'Company Name', required: true },
+  { key: 'email', label: 'Email', required: true },
+  { key: 'phone', label: 'Phone' },
+  { key: 'address', label: 'Address' },
+];
+
 function ClientsContent() {
-  const { clients, invoices, addClient, deleteClient } = useAppData();
+  const { clients, invoices, addClient, deleteClient, isReadOnly } = useAppData();
   const searchParams = useSearchParams();
   const [isAdding, setIsAdding] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', address: '' });
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -38,13 +48,11 @@ function ClientsContent() {
 
   const isFormDirty = () => Object.values(newClient).some(v => v.trim() !== '');
 
-  const handleAddClient = (e: React.FormEvent) => {
+  const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Guards against a second submit landing before the form closes (e.g. a
-    // fast double-click, or a script firing the handler repeatedly) — even
-    // though addClient() itself is synchronous today, this keeps the button
-    // safe to spam and future-proofs it if saving ever needs a network round
-    // trip.
+    // Guards against a second submit landing before the request finishes
+    // (e.g. a fast double-click) — addClient() now makes a real Supabase
+    // round trip, so this matters more than it used to.
     if (isSaving) return;
     if (!newClient.name || !newClient.email) {
       setFormError('Company name and email are required.');
@@ -52,11 +60,17 @@ function ClientsContent() {
     }
 
     setIsSaving(true);
-    addClient(newClient);
-    setNewClient({ name: '', email: '', phone: '', address: '' });
-    setFormError('');
-    setIsAdding(false);
-    setIsSaving(false);
+    try {
+      await addClient(newClient);
+      setNewClient({ name: '', email: '', phone: '', address: '' });
+      setFormError('');
+      setIsAdding(false);
+    } catch (error) {
+      console.error('Failed to add client:', error);
+      setFormError('Could not save this client. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -68,15 +82,21 @@ function ClientsContent() {
     setIsAdding(false);
   };
 
-  const handleDeleteClient = (id: string, name: string, invoiceCount: number) => {
+  const handleDeleteClient = async (id: string, name: string, invoiceCount: number) => {
     if (deletingId) return;
     const warning = invoiceCount > 0
       ? `Delete ${name}? This client has ${invoiceCount} invoice${invoiceCount === 1 ? '' : 's'} on record. The client will be removed, but their invoices will remain.`
       : `Delete ${name}? This cannot be undone.`;
     if (window.confirm(warning)) {
       setDeletingId(id);
-      deleteClient(id);
-      setDeletingId(null);
+      try {
+        await deleteClient(id);
+      } catch (error) {
+        console.error('Failed to delete client:', error);
+        alert('Could not delete this client. Please try again.');
+      } finally {
+        setDeletingId(null);
+      }
     }
   };
 
@@ -93,16 +113,42 @@ function ClientsContent() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Clients</h1>
-        <button 
-          className={styles.primaryButton}
-          onClick={() => setIsAdding(true)}
-        >
-          Add Client
-        </button>
+        {!isReadOnly && (
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              className={styles.primaryButton}
+              style={{ background: 'transparent', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+              onClick={() => setIsImportOpen(true)}
+            >
+              <UploadSimple size={16} style={{ marginRight: '6px' }} />
+              Import CSV
+            </button>
+            <button
+              className={styles.primaryButton}
+              onClick={() => setIsAdding(true)}
+            >
+              Add Client
+            </button>
+          </div>
+        )}
       </header>
 
+      <CsvImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title="Import Clients"
+        description="Upload a CSV exported from Excel or Google Sheets."
+        fields={CLIENT_IMPORT_FIELDS}
+        onImportRow={async (r) => {
+          if (!r.name || !r.email) throw new Error('Missing company name or email');
+          await addClient({ name: r.name, email: r.email, phone: r.phone || '', address: r.address || '' });
+        }}
+      />
+
+      {isReadOnly && <ReadOnlyBanner label="clients" />}
+
       <AnimatePresence>
-        {isAdding && (
+        {isAdding && !isReadOnly && (
           <motion.div 
             className={styles.addFormContainer}
             initial={{ height: 0, opacity: 0 }}
@@ -239,19 +285,21 @@ function ClientsContent() {
                     <td className="mono-text">{new Date(client.createdAt).toLocaleDateString()}</td>
                     <td className={`${styles.textRight} mono-text`}>{clientInvoicesCount}</td>
                     <td className={styles.textRight}>
-                      <button
-                        type="button"
-                        className={styles.iconButton}
-                        aria-label={`Delete ${client.name}`}
-                        disabled={deletingId === client.id}
-                        aria-busy={deletingId === client.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteClient(client.id, client.name, clientInvoicesCount);
-                        }}
-                      >
-                        <Trash size={16} />
-                      </button>
+                      {!isReadOnly && (
+                        <button
+                          type="button"
+                          className={styles.iconButton}
+                          aria-label={`Delete ${client.name}`}
+                          disabled={deletingId === client.id}
+                          aria-busy={deletingId === client.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClient(client.id, client.name, clientInvoicesCount);
+                          }}
+                        >
+                          <Trash size={16} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

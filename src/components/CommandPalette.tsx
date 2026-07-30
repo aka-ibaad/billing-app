@@ -30,7 +30,7 @@ export default function CommandPalette() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const { invoices, clients, products, expenses } = useAppData();
+  const { invoices, clients, products, expenses, isReadOnly } = useAppData();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -42,24 +42,24 @@ export default function CommandPalette() {
         setIsOpen((prev) => !prev);
       }
       
-      // Quick Create Invoice (Ctrl+N or Cmd+N)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      // Quick Create Invoice (Ctrl+N or Cmd+N) — no-op in read-only mode
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !isReadOnly) {
         e.preventDefault();
         router.push('/dashboard/invoices?create=true');
         setIsOpen(false);
       }
     };
-    
+
     const handleOpenSearch = () => setIsOpen(true);
-    
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('open-search', handleOpenSearch);
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('open-search', handleOpenSearch);
     };
-  }, [router]);
+  }, [router, isReadOnly]);
 
   // Handle internal keyboard navigation
   useEffect(() => {
@@ -109,15 +109,19 @@ export default function CommandPalette() {
         { id: 'nav-settings', icon: Gear, title: 'Go to Settings', onSelect: () => closeAndRun(() => router.push('/dashboard/settings')) },
       ],
     },
-    {
+    // Every entry here creates or changes data, so the whole group is
+    // dropped in read-only (mobile) mode rather than deep-linking to a
+    // create form that won't render.
+    ...(isReadOnly ? [] : [{
       title: 'Quick Actions',
       items: [
         { id: 'create-invoice', icon: Plus, title: 'Create new Invoice', shortcut: '⌘N', onSelect: () => closeAndRun(() => router.push('/dashboard/invoices?create=true')) },
+        { id: 'create-quotation', icon: Plus, title: 'Create new Quotation', onSelect: () => closeAndRun(() => router.push('/dashboard/invoices?create=true&documentType=quotation')) },
         { id: 'create-client', icon: Plus, title: 'Add new Client', onSelect: () => closeAndRun(() => router.push('/dashboard/clients?create=true')) },
         { id: 'create-product', icon: Plus, title: 'Add new Product', onSelect: () => closeAndRun(() => router.push('/dashboard/products?create=true')) },
         { id: 'record-expense', icon: Plus, title: 'Record Expense', onSelect: () => closeAndRun(() => router.push('/dashboard/expenses?create=true')) },
       ],
-    },
+    }]),
     {
       title: 'Preferences',
       items: [

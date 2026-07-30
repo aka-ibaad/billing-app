@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
-import { listUsers, deleteUser, approveUser, suspendUser, rejectUser, changeUserPassword, getUsersSyncData } from './actions'
+import { listUsers, deleteUser, approveUser, suspendUser, rejectUser, changeUserPassword, getMerchantStats, MerchantStats } from './actions'
 import { ConfirmForm, SubmitButton } from './ConfirmForm'
+import PasswordInput from '@/components/PasswordInput'
 import styles from './admin.module.css'
 import { redirect } from 'next/navigation'
 import { Buildings, Receipt, ArrowsClockwise, Clock, UsersThree } from './icons'
@@ -17,11 +18,11 @@ export default async function AdminDashboard() {
 
   // Fetch actual users using the Admin API
   let users: any[] = []
-  let syncData: any[] = []
+  let stats: Record<string, MerchantStats> = {}
   let fetchError: string | null = null
   try {
     users = await listUsers()
-    syncData = await getUsersSyncData()
+    stats = await getMerchantStats()
   } catch (error) {
     console.error('Failed to fetch admin data', error)
     fetchError = error instanceof Error ? error.message : 'Unknown error'
@@ -30,18 +31,10 @@ export default async function AdminDashboard() {
   const merchants = users.filter(u => u.app_metadata?.role !== 'admin')
   const pendingCount = merchants.filter(u => !u.app_metadata?.status || u.app_metadata.status === 'pending').length
 
-  // Calculate some platform totals from the sync data
-  let totalPlatformProcessed = 0
-  syncData.forEach(sd => {
-    if (sd.invoices) {
-      const invoices = typeof sd.invoices === 'string' ? JSON.parse(sd.invoices) : sd.invoices
-      invoices.forEach((inv: any) => {
-        if (inv.status === 'Paid') {
-          totalPlatformProcessed += inv.items?.reduce((sum: number, item: any) => sum + (item.rate * item.quantity), 0) || 0
-        }
-      })
-    }
-  })
+  // Platform total is now a real sum straight from the invoices table
+  // (paidTotal per merchant), not a re-parse of a JSON blob.
+  const totalPlatformProcessed = Object.values(stats).reduce((sum, s) => sum + s.paidTotal, 0)
+  const activeMerchantCount = Object.keys(stats).length
 
   return (
     <div className={styles.container}>
@@ -67,9 +60,9 @@ export default async function AdminDashboard() {
 
         <div className={styles.statCard}>
           <div className={styles.statCardIconWrap}><ArrowsClockwise size={18} weight="bold" /></div>
-          <div className={styles.statLabel}>Active Syncs</div>
-          <div className={styles.statValue}>{syncData.length}</div>
-          <div className={styles.statTrend}>Reporting local data</div>
+          <div className={styles.statLabel}>Merchants With Data</div>
+          <div className={styles.statValue}>{activeMerchantCount}</div>
+          <div className={styles.statTrend}>Have created a client or invoice</div>
         </div>
 
         <div className={styles.statCard}>
@@ -99,16 +92,14 @@ export default async function AdminDashboard() {
                 <th>Company / Name</th>
                 <th>Email</th>
                 <th>Joined</th>
-                <th>Sync Activity</th>
+                <th>Activity</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => {
-                const ud = syncData.find(d => d.user_id === u.id)
-                const invoices = ud?.invoices ? (typeof ud.invoices === 'string' ? JSON.parse(ud.invoices) : ud.invoices) : []
-                const clients = ud?.clients ? (typeof ud.clients === 'string' ? JSON.parse(ud.clients) : ud.clients) : []
+                const ud = stats[u.id]
                 const isAdmin = u.app_metadata?.role === 'admin'
                 const status = u.app_metadata?.status || 'pending'
 
@@ -123,11 +114,13 @@ export default async function AdminDashboard() {
                     <td className={styles.syncSummary}>
                       {ud ? (
                         <div>
-                          <div><b>Inv:</b> {invoices.length} | <b>Cli:</b> {clients.length}</div>
-                          <div className={styles.syncTimestamp}>Last sync: {new Date(ud.updated_at).toLocaleDateString()}</div>
+                          <div><b>Inv:</b> {ud.invoiceCount} | <b>Cli:</b> {ud.clientCount}</div>
+                          {ud.lastActivity && (
+                            <div className={styles.syncTimestamp}>Last activity: {new Date(ud.lastActivity).toLocaleDateString()}</div>
+                          )}
                         </div>
                       ) : (
-                        <span className={styles.noSyncLabel}>No sync data</span>
+                        <span className={styles.noSyncLabel}>No activity yet</span>
                       )}
                     </td>
                     <td>
@@ -175,14 +168,14 @@ export default async function AdminDashboard() {
 
                           <form action={changeUserPassword} className={styles.passwordForm}>
                             <input type="hidden" name="userId" value={u.id} />
-                            <input
-                              type="password"
+                            <PasswordInput
                               name="password"
                               placeholder="New password"
                               required
                               minLength={8}
                               className={styles.passwordInput}
                               aria-label={`New password for ${u.email}`}
+                              compact
                             />
                             <SubmitButton className={styles.secondaryButton} pendingLabel="Resetting…">Reset</SubmitButton>
                           </form>

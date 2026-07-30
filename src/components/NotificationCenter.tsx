@@ -21,12 +21,12 @@ export default function NotificationCenter() {
 
   const markAllRead = () => {
     notifications.forEach(n => {
-      if (!n.isRead) markNotificationRead(n.id);
+      if (!n.isRead) markNotificationRead(n.id).catch(err => console.error('Failed to mark notification read:', err));
     });
   };
 
   const removeAll = () => {
-    clearNotifications();
+    clearNotifications().catch(err => console.error('Failed to clear notifications:', err));
   };
 
   return (
@@ -86,7 +86,7 @@ export default function NotificationCenter() {
                         key={notification.id} 
                         className={`${styles.item} ${!notification.isRead ? styles.unread : ''}`}
                         onClick={() => {
-                          if (!notification.isRead) markNotificationRead(notification.id);
+                          if (!notification.isRead) markNotificationRead(notification.id).catch(err => console.error('Failed to mark notification read:', err));
                           if (notification.link) setIsOpen(false);
                         }}
                         style={{ textDecoration: 'none' }}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useActionState } from 'react';
 import { login } from './actions';
+import PasswordInput from '@/components/PasswordInput';
 import styles from './login.module.css';
 
 export default function LoginForm() {
@@ -35,11 +36,10 @@ export default function LoginForm() {
         <label className={styles.label} htmlFor="password">
           Password
         </label>
-        <input
+        <PasswordInput
           className={styles.input}
           id="password"
           name="password"
-          type="password"
           placeholder="••••••••"
           autoComplete="current-password"
           required

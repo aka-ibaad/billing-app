@@ -5,16 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import { useAppData, Tax } from '@/context/AppDataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './page.module.css';
-import { Plus, Trash, DownloadSimple, Image as ImageIcon, FileText } from '@phosphor-icons/react';
+import { Plus, Trash, DownloadSimple, Image as ImageIcon, FileText, ShareNetwork } from '@phosphor-icons/react';
 import InvoicePreview from '@/components/InvoicePreview';
 import InvoiceSwipeCard from '@/components/InvoiceSwipeCard';
 import UpcomingDueCalendar from '@/components/dashboard/UpcomingDueCalendar';
 import { InvoiceStatusChart } from '@/components/dashboard/DetailedCharts';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import ReadOnlyBanner from '@/components/ReadOnlyBanner';
 
 function InvoicesContent() {
-  const { invoices, clients, settings, products, addInvoice, updateOrderStatus, deleteInvoice } = useAppData();
+  const { invoices, clients, settings, products, addInvoice, updateOrderStatus, deleteInvoice, isReadOnly } = useAppData();
   const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
   const [formError, setFormError] = useState('');
@@ -22,6 +23,16 @@ function InvoicesContent() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
+  const [isSharingDraft, setIsSharingDraft] = useState(false);
+  // Which saved invoice (by id) is currently being rendered off-screen for
+  // sharing. Doubles as the "is a share in progress" flag for the list/card
+  // Share buttons — only one at a time.
+  const [sharingInvoiceId, setSharingInvoiceId] = useState<string | null>(null);
+  const shareCaptureRef = useRef<HTMLDivElement>(null);
+  // Hidden, off-screen, always-real (forceRender) copy of the draft being
+  // built — see captureInvoicePreview below for why this replaced
+  // capturing the visible previewRef directly.
+  const draftCaptureRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const previewScalerRef = useRef<HTMLDivElement>(null);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
@@ -82,6 +93,9 @@ function InvoicesContent() {
     }
     if (searchParams.get('format') === 'vertical') {
       setNewInvoice(prev => ({ ...prev, format: 'vertical' }));
+    }
+    if (searchParams.get('documentType') === 'quotation') {
+      setNewInvoice(prev => ({ ...prev, documentType: 'quotation' }));
     }
   }, [searchParams]);
 
@@ -187,7 +201,7 @@ function InvoicesContent() {
     };
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
     if (!newInvoice.clientId) {
@@ -200,30 +214,36 @@ function InvoicesContent() {
     }
 
     setIsSaving(true);
-    addInvoice(newInvoice);
-    setFormError('');
-    setIsCreating(false);
-    setIsSaving(false);
-    // Reset form
-    setNewInvoice({
-      clientId: '',
-      number: `INV-2026-${String(invoices.length + 2).padStart(3, '0')}`,
-      issueDate: new Date().toISOString().split('T')[0],
-      issueTime: new Date().toTimeString().slice(0, 5),
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      items: [{ id: Date.now().toString(), description: '', quantity: 1, rate: 0 }],
-      status: 'Draft',
-      notes: '',
-      taxes: [],
-      discount: { type: 'fixed' as 'fixed' | 'percentage', value: 0 },
-      format: 'horizontal' as 'horizontal' | 'vertical',
-      documentType: 'invoice' as 'invoice' | 'quotation',
-      paymentStatus: 'payable_after' as 'advance_full' | 'advance_partial' | 'payable_after',
-      advanceAmountPaid: 0,
-      expectedReadyDate: '',
-      expectedReadyTime: '',
-      orderStatus: 'Pending',
-    });
+    try {
+      await addInvoice(newInvoice);
+      setFormError('');
+      setIsCreating(false);
+      // Reset form
+      setNewInvoice({
+        clientId: '',
+        number: `INV-2026-${String(invoices.length + 2).padStart(3, '0')}`,
+        issueDate: new Date().toISOString().split('T')[0],
+        issueTime: new Date().toTimeString().slice(0, 5),
+        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        items: [{ id: Date.now().toString(), description: '', quantity: 1, rate: 0 }],
+        status: 'Draft',
+        notes: '',
+        taxes: [],
+        discount: { type: 'fixed' as 'fixed' | 'percentage', value: 0 },
+        format: 'horizontal' as 'horizontal' | 'vertical',
+        documentType: 'invoice' as 'invoice' | 'quotation',
+        paymentStatus: 'payable_after' as 'advance_full' | 'advance_partial' | 'payable_after',
+        advanceAmountPaid: 0,
+        expectedReadyDate: '',
+        expectedReadyTime: '',
+        orderStatus: 'Pending',
+      });
+    } catch (error) {
+      console.error('Failed to save invoice:', error);
+      setFormError('Could not save this invoice. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const isBuilderDirty = () => {
@@ -242,49 +262,49 @@ function InvoicesContent() {
     setIsCreating(false);
   };
 
-  const handleDeleteInvoice = (id: string, number: string) => {
+  const handleDeleteInvoice = async (id: string, number: string) => {
     if (deletingId) return;
     if (window.confirm(`Delete invoice ${number}? This cannot be undone.`)) {
       setDeletingId(id);
-      deleteInvoice(id);
-      setDeletingId(null);
+      try {
+        await deleteInvoice(id);
+      } catch (error) {
+        console.error('Failed to delete invoice:', error);
+        alert('Could not delete this invoice. Please try again.');
+      } finally {
+        setDeletingId(null);
+      }
     }
   };
 
-  // html2canvas captures previewRef, but its direct parent (previewScaler)
-  // carries a live `transform: scale(previewScale)` from the scale-to-fit
-  // mechanism above — that's what let the panel shrink to fit the pane
-  // width without clipping. html2canvas reads the ancestor's transformed
-  // bounding box but clones/renders the subtree at its natural size, and
-  // that mismatch is exactly what produced the doubled/ghosted text in
-  // exported images and PDFs. The fix is to zero out the transform right
-  // before capture (so html2canvas sees the element at 1:1, untransformed)
-  // and restore it immediately after — previewRef's own internal layout
-  // never depended on the parent's scale, only its visual size did, so
-  // this doesn't change what gets captured, only how faithfully it's read.
+  // Captures draftCaptureRef — a hidden, off-screen, always-real
+  // (forceRender) copy of the draft, rendered at its true native size — NOT
+  // the visible previewRef panel. Two reasons this is better than capturing
+  // the visible one directly: (1) the visible panel is scaled down to fit
+  // the pane (via previewScaler's `transform: scale(...)`), and html2canvas
+  // reads the ancestor's transformed bounding box but clones/renders the
+  // subtree at its natural size — that mismatch used to produce
+  // doubled/ghosted text in exports, previously worked around by zeroing
+  // the transform right before capture and restoring it after; capturing an
+  // always-unscaled hidden copy avoids that dance entirely. (2) On mobile,
+  // the visible panel intentionally shows a "preview is web-only" message
+  // instead of the real document (see InvoicePreview.tsx) — but PDF/image
+  // export and Share still need to work correctly on mobile, so they need
+  // a render that's real regardless of platform.
   const captureInvoicePreview = async (scale = 2) => {
-    if (!previewRef.current) return null;
-    const scaler = previewScalerRef.current;
-    const prevTransform = scaler?.style.transform;
-
-    if (scaler) scaler.style.transform = 'none';
-    // Let the transform removal actually reflow, and make sure the
-    // (potentially not-yet-loaded) web fonts are ready — html2canvas
-    // rasterizes whatever font is active at capture time, and racing a
-    // late font swap is a second, independent way to get garbled glyphs.
+    if (!draftCaptureRef.current) return null;
+    // Make sure the (potentially not-yet-loaded) web fonts are ready —
+    // html2canvas rasterizes whatever font is active at capture time, and a
+    // late font swap would otherwise produce garbled glyphs.
     await document.fonts.ready;
     await new Promise(requestAnimationFrame);
 
-    try {
-      return await html2canvas(previewRef.current, {
-        scale,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        foreignObjectRendering: false,
-      });
-    } finally {
-      if (scaler && prevTransform !== undefined) scaler.style.transform = prevTransform;
-    }
+    return html2canvas(draftCaptureRef.current, {
+      scale,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      foreignObjectRendering: false,
+    });
   };
 
   // html2canvas + jsPDF are genuinely expensive (rasterizing the DOM at 2x
@@ -326,20 +346,110 @@ function InvoicesContent() {
     }
   };
 
+  // There's no "customer account" concept in this app — a shopkeeper's
+  // clients never log in, so an automated "email the invoice" flow has
+  // nowhere to send to that the merchant hasn't already got a phone number
+  // or WhatsApp for. The Share button instead hands a rendered invoice
+  // image straight to the device's native share sheet (WhatsApp, SMS,
+  // email, whatever the user already has installed) via the Web Share API.
+  // Where that's unsupported, it falls back to downloading the image so the
+  // user can still attach it manually.
+  const shareCanvasImage = async (canvas: HTMLCanvasElement, filename: string) => {
+    const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return;
+
+    const file = new File([blob], filename, { type: 'image/png' });
+    const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean; share?: (data: ShareData & { files?: File[] }) => Promise<void> }) : undefined;
+
+    if (nav?.canShare?.({ files: [file] }) && nav.share) {
+      try {
+        await nav.share({ files: [file], title: filename });
+        return;
+      } catch (error) {
+        // AbortError just means the user closed the share sheet without
+        // picking anything — not a failure worth surfacing.
+        if ((error as DOMException)?.name === 'AbortError') return;
+        console.error('Share failed, falling back to download:', error);
+      }
+    }
+
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+    alert("Direct sharing isn't supported on this browser — the invoice image was downloaded instead so you can attach it manually.");
+  };
+
+  const shareDraft = async () => {
+    if (isSharingDraft) return;
+    setIsSharingDraft(true);
+    try {
+      const canvas = await captureInvoicePreview();
+      if (!canvas) return;
+      await shareCanvasImage(canvas, `${newInvoice.number}.png`);
+    } finally {
+      setIsSharingDraft(false);
+    }
+  };
+
+  const computeStaticInvoiceTotals = (inv: (typeof invoices)[number]) => {
+    const subtotal = inv.items.reduce((acc, item) => acc + (item.quantity * item.rate), 0);
+    const discountAmount = inv.discount?.type === 'percentage' ? subtotal * ((inv.discount?.value || 0) / 100) : (inv.discount?.value || 0);
+    const afterDiscount = Math.max(0, subtotal - discountAmount);
+    let totalTax = 0;
+    inv.taxes?.forEach(tax => { totalTax += afterDiscount * (tax.rate / 100); });
+    return { subtotal, discountAmount, afterDiscount, totalTax, total: afterDiscount + totalTax };
+  };
+
+  // Renders the chosen saved invoice off-screen (see the hidden container
+  // near the bottom of the JSX below) so it can be captured the same way
+  // the live builder preview is, then shares that image.
+  const handleShareSavedInvoice = async (inv: (typeof invoices)[number]) => {
+    if (sharingInvoiceId) return;
+    setSharingInvoiceId(inv.id);
+    try {
+      // Two animation-frame waits: one for React to commit the off-screen
+      // render, one for layout to settle from it, matching the same
+      // pattern captureInvoicePreview uses for the live builder.
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await document.fonts.ready;
+      const node = shareCaptureRef.current;
+      if (!node) return;
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        foreignObjectRendering: false,
+      });
+      await shareCanvasImage(canvas, `${inv.number}.png`);
+    } catch (error) {
+      console.error('Failed to share invoice:', error);
+      alert('Could not share this invoice. Please try again.');
+    } finally {
+      setSharingInvoiceId(null);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Invoices</h1>
-        <button 
-          className={styles.primaryButton}
-          onClick={() => setIsCreating(true)}
-        >
-          Create Invoice
-        </button>
+        {!isReadOnly && (
+          <button
+            className={styles.primaryButton}
+            onClick={() => setIsCreating(true)}
+          >
+            Create Invoice
+          </button>
+        )}
       </header>
 
+      {isReadOnly && <ReadOnlyBanner label="invoices" />}
+
       <AnimatePresence>
-        {isCreating && (
+        {isCreating && !isReadOnly && (
           <motion.div 
             className={styles.builderSplitScreen}
             initial={{ height: 0, opacity: 0 }}
@@ -621,9 +731,18 @@ function InvoicesContent() {
                   <div className={styles.panelBtnGroup}>
                     <button
                       type="button"
+                      onClick={shareDraft}
+                      className={styles.exportBtn}
+                      disabled={isSharingDraft || isExportingImage || isExportingPDF}
+                      aria-busy={isSharingDraft}
+                    >
+                      <ShareNetwork /> {isSharingDraft ? 'Sharing…' : 'Share'}
+                    </button>
+                    <button
+                      type="button"
                       onClick={exportImage}
                       className={styles.exportBtn}
-                      disabled={isExportingImage || isExportingPDF}
+                      disabled={isExportingImage || isExportingPDF || isSharingDraft}
                       aria-busy={isExportingImage}
                     >
                       <ImageIcon /> {isExportingImage ? 'Exporting…' : 'Image'}
@@ -632,7 +751,7 @@ function InvoicesContent() {
                       type="button"
                       onClick={exportPDF}
                       className={`${styles.exportBtn} ${styles.exportBtnPrimary}`}
-                      disabled={isExportingPDF || isExportingImage}
+                      disabled={isExportingPDF || isExportingImage || isSharingDraft}
                       aria-busy={isExportingPDF}
                     >
                       <DownloadSimple /> {isExportingPDF ? 'Exporting…' : 'PDF'}
@@ -668,6 +787,47 @@ function InvoicesContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Hidden, off-screen, always-real (forceRender) copy of the draft —
+          see captureInvoicePreview's comment above for why exports/Share
+          capture this instead of the visible scaled preview panel. Kept in
+          sync live since it re-renders on every newInvoice change while the
+          builder is open. */}
+      {isCreating && (
+        <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1, pointerEvents: 'none' }}>
+          <div ref={draftCaptureRef} style={{ width: newInvoice.format === 'vertical' ? 320 : 800 }}>
+            <InvoicePreview
+              invoice={newInvoice}
+              client={clients.find(c => c.id === newInvoice.clientId)}
+              settings={settings}
+              totals={calculateTotals()}
+              forceRender
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Off-screen render target for sharing an already-saved invoice from
+          the table/card list (as opposed to the live draft above). Rendered
+          at the document's true size, positioned off-screen rather than
+          display:none, since html2canvas needs real layout to capture. */}
+      {sharingInvoiceId && (() => {
+        const shareInv = invoices.find(i => i.id === sharingInvoiceId);
+        if (!shareInv) return null;
+        return (
+          <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1, pointerEvents: 'none' }}>
+            <div ref={shareCaptureRef} style={{ width: shareInv.format === 'vertical' ? 320 : 800 }}>
+              <InvoicePreview
+                invoice={shareInv}
+                client={clients.find(c => c.id === shareInv.clientId)}
+                settings={settings}
+                totals={computeStaticInvoiceTotals(shareInv)}
+                forceRender
+              />
+            </div>
+          </div>
+        );
+      })()}
 
       <div className={styles.widgetsRow}>
         <UpcomingDueCalendar />
@@ -753,9 +913,9 @@ function InvoicesContent() {
                       }`}>
                         {inv.orderStatus || 'Pending'}
                       </span>
-                      {inv.orderStatus !== 'Delivered' && inv.orderStatus !== 'Cancelled' && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); updateOrderStatus(inv.id, 'Delivered'); }}
+                      {!isReadOnly && inv.orderStatus !== 'Delivered' && inv.orderStatus !== 'Cancelled' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateOrderStatus(inv.id, 'Delivered').catch(err => console.error('Failed to update order status:', err)); }}
                           style={{
                             background: 'none', border: '1px solid var(--color-border)', borderRadius: '4px',
                             padding: '4px 8px', fontSize: '10px', cursor: 'pointer', color: 'var(--color-text-secondary)'
@@ -767,17 +927,29 @@ function InvoicesContent() {
                     </div>
                   </td>
                   <td className={`${styles.textRight} mono-text`}>Rs {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                  <td className={styles.textRight}>
+                  <td className={styles.textRight} style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
                     <button
                       type="button"
                       className={styles.iconButton}
-                      aria-label={`Delete invoice ${inv.number}`}
-                      disabled={deletingId === inv.id}
-                      aria-busy={deletingId === inv.id}
-                      onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(inv.id, inv.number); }}
+                      aria-label={`Share invoice ${inv.number}`}
+                      disabled={sharingInvoiceId === inv.id}
+                      aria-busy={sharingInvoiceId === inv.id}
+                      onClick={(e) => { e.stopPropagation(); handleShareSavedInvoice(inv); }}
                     >
-                      <Trash size={16} />
+                      <ShareNetwork size={16} />
                     </button>
+                    {!isReadOnly && (
+                      <button
+                        type="button"
+                        className={styles.iconButton}
+                        aria-label={`Delete invoice ${inv.number}`}
+                        disabled={deletingId === inv.id}
+                        aria-busy={deletingId === inv.id}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteInvoice(inv.id, inv.number); }}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -820,6 +992,9 @@ function InvoicesContent() {
                 statusClassName={statusClass}
                 amountLabel={`Rs ${inv.calculatedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 onDelete={() => handleDeleteInvoice(inv.id, inv.number)}
+                disableSwipe={isReadOnly}
+                onShare={() => handleShareSavedInvoice(inv)}
+                isSharing={sharingInvoiceId === inv.id}
               />
             );
           })}

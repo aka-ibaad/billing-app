@@ -18,7 +18,7 @@ import {
 type FilterType = '7D' | '30D' | '12M';
 
 export default function Dashboard() {
-  const { invoices, expenses, clients, products, updateOrderStatus, refreshFromStorage } = useAppData();
+  const { invoices, expenses, clients, products, updateOrderStatus, refreshFromStorage, isReadOnly } = useAppData();
   const [filter, setFilter] = useState<FilterType>('30D');
 
   const validInvoices = useMemo(() => invoices.filter(i => i.documentType !== 'quotation'), [invoices]);
@@ -297,12 +297,14 @@ export default function Dashboard() {
                         {delivery.number} • Due: {delivery.expectedReadyDate} {delivery.expectedReadyTime && `at ${delivery.expectedReadyTime}`} • {delivery.client?.phone || delivery.client?.email || 'No contact info'}
                       </span>
                     </div>
-                    <button 
-                      className={styles.deliverBtn} 
-                      onClick={() => updateOrderStatus(delivery.id, 'Delivered')}
-                    >
-                      Mark as Delivered
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        className={styles.deliverBtn}
+                        onClick={() => updateOrderStatus(delivery.id, 'Delivered')}
+                      >
+                        Mark as Delivered
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

@@ -7,18 +7,22 @@ import { useAppData } from '@/context/AppDataContext';
 import styles from './RevenueGoalWidget.module.css';
 
 export default function RevenueGoalWidget() {
-  const { invoices, monthlyRevenueGoal, setMonthlyRevenueGoal } = useAppData();
+  const { invoices, monthlyRevenueGoal, setMonthlyRevenueGoal, isReadOnly } = useAppData();
   const [isEditing, setIsEditing] = useState(false);
   const [draftGoal, setDraftGoal] = useState(String(monthlyRevenueGoal));
 
   const monthlyGoal = monthlyRevenueGoal;
 
-  const handleSaveGoal = () => {
+  const handleSaveGoal = async () => {
     const parsed = Number(draftGoal);
-    if (!isNaN(parsed) && parsed > 0) {
-      setMonthlyRevenueGoal(parsed);
-    }
     setIsEditing(false);
+    if (!isNaN(parsed) && parsed > 0) {
+      try {
+        await setMonthlyRevenueGoal(parsed);
+      } catch (error) {
+        console.error('Failed to save revenue goal:', error);
+      }
+    }
   };
 
   const currentRevenue = useMemo(() => {
@@ -46,14 +50,16 @@ export default function RevenueGoalWidget() {
           <Target size={18} weight="duotone" />
         </div>
         <div className={styles.title}>Monthly Goal</div>
-        <button
-          type="button"
-          aria-label={isEditing ? 'Save monthly goal' : 'Edit monthly goal'}
-          onClick={() => isEditing ? handleSaveGoal() : setIsEditing(true)}
-          style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '4px', display: 'flex' }}
-        >
-          {isEditing ? <Check size={16} /> : <PencilSimple size={16} />}
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            aria-label={isEditing ? 'Save monthly goal' : 'Edit monthly goal'}
+            onClick={() => isEditing ? handleSaveGoal() : setIsEditing(true)}
+            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+          >
+            {isEditing ? <Check size={16} /> : <PencilSimple size={16} />}
+          </button>
+        )}
       </div>
 
       <div className={styles.gaugeContainer}>

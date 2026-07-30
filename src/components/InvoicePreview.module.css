@@ -1,3 +1,17 @@
+.mobileUnavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
 .documentWrapper {
   width: 100%;
   min-width: 0; /* allow shrinking inside flex/grid ancestors instead of

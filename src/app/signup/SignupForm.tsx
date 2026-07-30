@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useActionState } from 'react';
 import { signup } from '@/app/login/actions';
+import PasswordInput from '@/components/PasswordInput';
 import styles from '@/app/login/login.module.css';
 import signupStyles from './signup.module.css';
 
@@ -69,11 +70,10 @@ export default function SignupForm() {
           <label className={styles.label} htmlFor="password">
             Password
           </label>
-          <input
+          <PasswordInput
             className={styles.input}
             id="password"
             name="password"
-            type="password"
             placeholder="••••••••"
             autoComplete="new-password"
             minLength={8}

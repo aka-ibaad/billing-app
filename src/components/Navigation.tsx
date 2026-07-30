@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SquaresFour, FileText, Users, ChartLineUp, Receipt, Gear, Sparkle, Crown, List, X } from '@phosphor-icons/react';
+import { SquaresFour, FileText, Users, ChartLineUp, Receipt, Gear, Sparkle, Crown, List, X, Clock } from '@phosphor-icons/react';
 import styles from './Navigation.module.css';
 import { useAppData } from '@/context/AppDataContext';
 
@@ -18,6 +18,7 @@ const navItems = [
   
   // Extra desktop items (hidden on mobile)
   { id: 'products', path: '/dashboard/products', label: 'Products', icon: ChartLineUp, desktopOnly: true },
+  { id: 'time-tracking', path: '/dashboard/time-tracking', label: 'Time', icon: Clock, desktopOnly: true },
   { id: 'records', path: '/dashboard/records', label: 'Records', icon: FileText, desktopOnly: true },
   { id: 'insights', path: '/dashboard/insights', label: 'Insights', icon: Sparkle, desktopOnly: true },
 ];
@@ -36,6 +37,7 @@ const mobilePrimaryItems = [
 
 const mobileMoreItems = [
   { id: 'products', path: '/dashboard/products', label: 'Products', icon: ChartLineUp },
+  { id: 'time-tracking', path: '/dashboard/time-tracking', label: 'Time', icon: Clock },
   { id: 'records', path: '/dashboard/records', label: 'Records', icon: FileText },
   { id: 'insights', path: '/dashboard/insights', label: 'Insights', icon: Sparkle },
   { id: 'settings', path: '/dashboard/settings', label: 'Settings', icon: Gear },

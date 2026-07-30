@@ -25,12 +25,54 @@ export async function listUsers() {
   return data.users
 }
 
-export async function getUsersSyncData() {
+// Replaces the old user_data_sync blob (which the app no longer writes to
+// now that Supabase's relational tables are the source of truth). Uses the
+// service-role admin client to read across every merchant's clients and
+// invoices — RLS would otherwise scope these to auth.uid(), which has no
+// meaning for an admin looking at someone else's data.
+export type MerchantStats = {
+  clientCount: number
+  invoiceCount: number
+  paidTotal: number
+  lastActivity: string | null
+}
+
+export async function getMerchantStats(): Promise<Record<string, MerchantStats>> {
   await checkAdmin()
   const adminClient = createAdminClient()
-  const { data, error } = await adminClient.from('user_data_sync').select('*')
-  if (error) throw error
-  return data || []
+
+  const [clientsRes, invoicesRes] = await Promise.all([
+    adminClient.from('clients').select('merchant_id, created_at'),
+    adminClient.from('invoices').select('merchant_id, status, total, created_at'),
+  ])
+
+  if (clientsRes.error) throw clientsRes.error
+  if (invoicesRes.error) throw invoicesRes.error
+
+  const stats: Record<string, MerchantStats> = {}
+
+  const ensure = (id: string) => {
+    if (!stats[id]) stats[id] = { clientCount: 0, invoiceCount: 0, paidTotal: 0, lastActivity: null }
+    return stats[id]
+  }
+  const bump = (id: string, at: string) => {
+    const s = ensure(id)
+    if (!s.lastActivity || new Date(at) > new Date(s.lastActivity)) s.lastActivity = at
+  }
+
+  ;(clientsRes.data || []).forEach(c => {
+    ensure(c.merchant_id).clientCount += 1
+    bump(c.merchant_id, c.created_at)
+  })
+
+  ;(invoicesRes.data || []).forEach(inv => {
+    const s = ensure(inv.merchant_id)
+    s.invoiceCount += 1
+    if (inv.status === 'Paid') s.paidTotal += Number(inv.total) || 0
+    bump(inv.merchant_id, inv.created_at)
+  })
+
+  return stats
 }
 
 export async function approveUser(userId: string) {
